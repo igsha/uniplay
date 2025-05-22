@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -e
+
+which http > /dev/null
+
+SCRIPT_DIR="$(dirname "$0")"
+if http GET "$1" | grep -q "RalodePlayer\.init"; then
+    exec "$SCRIPT_DIR/ralode.sh" "$1"
+fi
