@@ -10,6 +10,8 @@ if [[ "$1" =~ https?://[^/]*mangalib ]]; then
     PLAYER="$SCRIPT_DIR/mangalib.sh"
 elif [[ "$1" =~ https?://[^/]*remanga ]]; then
     PLAYER="$SCRIPT_DIR/mangalib.sh"
+elif [[ "$1" =~ https?://[^/]*kodik ]]; then
+    PLAYER="$SCRIPT_DIR/kodik.sh"
 elif http GET "$1" | grep -q "RalodePlayer\.init"; then
     PLAYER="$SCRIPT_DIR/ralode.sh"
 fi
