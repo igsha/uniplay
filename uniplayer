@@ -1,19 +1,71 @@
 #!/usr/bin/env bash
 set -e
 
-which http > /dev/null
+which xargs jq http > /dev/null
 
-SCRIPT_DIR="$(dirname "$0")"
-PLAYER=""
+read -r REGISTER < <(mktemp -t uniplayer.XXX)
+trap "rm \"$REGISTER\"" INT EXIT
 
-if [[ "$1" =~ https?://[^/]*mangalib ]]; then
-    PLAYER="$SCRIPT_DIR/mangalib.sh"
-elif [[ "$1" =~ https?://[^/]*remanga ]]; then
-    PLAYER="$SCRIPT_DIR/remanga.sh"
-elif [[ "$1" =~ https?://[^/]*kodik ]]; then
-    PLAYER="$SCRIPT_DIR/kodik.sh"
-elif http GET "$1" | grep -q "RalodePlayer\.init"; then
-    PLAYER="$SCRIPT_DIR/ralode.sh"
-fi
+URL="$1"
+http GET "$URL" > "$REGISTER"
 
-exec "$PLAYER" "$1"
+FETCHERS_DIR="$(dirname "$0")/fetchers"
+#mapfile -t FETCHERS < <(find "$FETCHERS_DIR" -type f -executable -print)
+FETCHERS=("$FETCHERS_DIR/"{ralode,iframe,videoplayer,kodik,mangalib,remanga}.sh)
+FIXPOINT=1
+REFERER=
+TITLE=
+while [[ "$FIXPOINT" -eq 1 ]]; do
+    FIXPOINT=0
+    for FETCHER in "${FETCHERS[@]}"; do
+        mapfile -t JSON < <("$FETCHER" "$REGISTER" "$URL")
+        read -r RESULT < <(jq -r .result <<< "${JSON[@]}")
+        case "$RESULT" in
+            notmine) continue;;
+            pdf)
+                read -r FILEPATH < <(jq -r .url <<< "${JSON[@]}")
+                echo "Opening $FILEPATH..."
+                exec xdg-open "$FILEPATH";;
+            url)
+                read -r URL < <(jq -r .url <<< "${JSON[@]}")
+                ARGS=("$URL")
+                if read -r TREF < <(jq -r '.referer // empty' <<< "${JSON[@]}"); then
+                    REFERER="$TREF"
+                fi
+                if [[ -n "$REFERER" ]]; then
+                    ARGS+=("referer:$REFERER")
+                fi
+                if read -r TTITLE < <(jq -r ".title // empty" <<< "${JSON[@]}"); then
+                    TITLE="$TTITLE"
+                fi
+
+                echo "Downloading $URL...$REFERER"
+                http GET "${ARGS[@]}" > "$REGISTER"
+                FIXPOINT=1;;
+            video)
+                read -r URL < <(jq -r .url <<< "${JSON[@]}")
+                ARGS=("$URL")
+                if read -r TREF < <(jq -r '.referer // empty' <<< "${JSON[@]}"); then
+                    REFERER="$TREF"
+                fi
+                if [[ -n "$REFERER" ]]; then
+                    ARGS+=("--http-header-fields=Referer: $REFERER")
+                fi
+                if read -r TTITLE < <(jq -r ".title // empty" <<< "${JSON[@]}"); then
+                    TITLE="$TTITLE"
+                fi
+                if [[ -n "$TITLE" ]]; then
+                    ARGS+=("--title=$TITLE")
+                fi
+
+                echo "Playing $URL..."
+                exec mpv "${ARGS[@]}";;
+            *) echo "${JSON[@]}";;
+        esac
+
+        break
+    done
+done
+
+echo "No fix point"
+exit 1

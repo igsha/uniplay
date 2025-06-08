@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 set -e
 
-which grep http rg xq fzf tr base64 sed mpv > /dev/null
+which grep http rg xq fzf tr base64 sed jo > /dev/null
 
-read -r DOMAIN < <(grep -Po ".+//[^/]+" <<< "$1")
-read -r TITLE < <(http GET "$1" | grep -Po "<title>\K.+(?=</title\>)")
-IFS=$'\t' read -r STITLE URL < <(http GET "$1" \
-    | rg --multiline-dotall -UPo '<div class="serial-series-box".*?</div>' \
+if [[ ! "$2" =~ kodik ]]; then
+    jo result=notmine
+    exit 0
+fi
+
+read -r DOMAIN < <(grep -Po ".+//[^/]+" <<< "$2")
+read -r TITLE < <(grep -Po "<title>\K.+(?=</title\>)" "$1")
+IFS=$'\t' read -r STITLE URL < <(rg --multiline-dotall -UPo '<div class="serial-series-box".*?</div>' "$1" \
     | xq -r '.div.select.option[]
 | "\(.["@data-title"])\t'$DOMAIN'/ftor?type=seria&id=\(.["@data-id"])&hash=\(.["@data-hash"])"' \
     | fzf)
@@ -26,5 +30,5 @@ for ((rot=0; rot<25; ++rot)); do
     fi
 done
 
-echo "Play URL: $URL"
-mpv --title="$TITLE - $STITLE" "$URL"
+echo "Play URL: $URL" >&2
+jo result=video "title=$TITLE - $STITLE"  "url=$URL"
