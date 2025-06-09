@@ -41,12 +41,16 @@ mkdir -p "$DIR"
 
 PDFFILE="$DIR/$NAME - $VOLUME-$NUMBER - $STITLE.pdf"
 if [[ "$MARKED" != "(cached)" ]]; then
-    mapfile -t < <(http "https://api.cdnlibs.org/api/$REQNAME/chapter?volume=$VOLUME&number=$NUMBER" \
+    FILES=()
+    URLS=()
+    while IFS=$'\t' read -r URL FILE; do
+        FILES+=("$FILE")
+        URLS+=("$URL")
+    done < <(http "https://api.cdnlibs.org/api/$REQNAME/chapter?volume=$VOLUME&number=$NUMBER" \
         | jq -r '.data.pages[] | "https://img33.imgslib.link\(.url)\t'"$DIR/"'\(.url | split("/")[-1])"')
-    FILES=("${MAPFILE[@]##*$'\t'}")
 
     echo Extract pages... >&2
-    parallel --colsep='\t' -kq http GET {1} "referer:$DOMAIN" -o {2} ::: "${MAPFILE[@]}"
+    parallel --colsep='\t' -kq http GET {1} "referer:$DOMAIN" -o {2} ::: "${URLS[@]}" :::+ "${FILES[@]}"
     echo Create pdf... >&2
     pdfcpu import -c disable "$PDFFILE" "${FILES[@]}" >&2
     echo Remove pages... >&2

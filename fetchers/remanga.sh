@@ -38,12 +38,16 @@ mkdir -p "$DIR"
 
 PDFFILE="$DIR/$NAME - $CHAPTER.pdf"
 if [[ "$MARKED" != "(cached)" ]]; then
-    mapfile -t < <(http GET "https://api.remanga.org/api/v2/titles/chapters/$ID/" \
+    FILES=()
+    URLS=()
+    while IFS=$'\t' read -r URL FILE; do
+        FILES+=("$FILE")
+        URLS+=("$URL")
+    done < <(http GET "https://api.remanga.org/api/v2/titles/chapters/$ID/" \
         | jq -r '.pages | flatten | .[] | "\(.link)\t'"$DIR/"'\(.link | split("/")[-1])"')
-    FILES=("${MAPFILE[@]##*$'\t'}")
 
     echo Extract pages... >&2
-    parallel --colsep='\t' -kq http GET {1} "referer:$DOMAIN" -o {2} ::: "${MAPFILE[@]}"
+    parallel --colsep='\t' -kq http GET {1} "referer:$DOMAIN" -o {2} ::: "${URLS[@]}" :::+ "${FILES[@]}"
     echo Convert pages... >&2
     magick \( "${FILES[@]}" -append \) -crop 1x${#FILES[@]}@ +repage "$DIR"/replaced_%04d.jpg >&2
     echo Create pdf... >&2
