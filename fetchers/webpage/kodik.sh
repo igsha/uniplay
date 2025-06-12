@@ -30,5 +30,4 @@ for ((rot=0; rot<25; ++rot)); do
     fi
 done
 
-echo "Play URL: $URL" >&2
 jo result=video "title=$TITLE - $STITLE"  "url=$URL"
