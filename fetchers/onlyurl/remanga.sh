@@ -32,13 +32,19 @@ echo "Remanga: Download chapters https://api.remanga.org/api/v2/titles/chapters/
 APIURL="https://api.remanga.org"
 ID=next
 CHAPTER="/api/v2/titles/chapters/?branch_id=$BRANCHID&ordering=index"
+URL="$APIURL$CHAPTER"
+ORIGIN=0
 while [[ "$ID" == next ]]; do
     URL="$APIURL$CHAPTER"
-    IFS=$'\t' read -r MARKED CHAPTER ID < <(http GET "$URL" \
-        | jq -r '(.results + [.next | select(. != null) | {chapter: ., id: "next"}]) | .[] | [.chapter, .id] | @tsv' \
-        | mark "$DIR/$NAME" \
-        | fzf)
+    mapfile -O "$ORIGIN" -t LINES < <(http GET "$URL" \
+        | jq -r '(.results + [.next | select(. != null) | {chapter: ., id: "next"}]) | .[] | [.chapter, .id] | @tsv')
+    ORIGIN=$((${#LINES[@]}-1))
+    IFS=$'\t' read -r CHAPTER ID <<< "${LINES[$ORIGIN]}"
 done
+
+IFS=$'\t' read -r MARKED CHAPTER ID < <(printf "%s\n" "${LINES[@]}" \
+    | mark "$DIR/$NAME" \
+    | fzf)
 
 DIR="$DIR/$NAME/$ID"
 mkdir -p "$DIR"
