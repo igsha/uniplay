@@ -2,13 +2,12 @@
 set -e
 
 which grep http pdfcpu fzf jo jq > /dev/null
-
-if [[ ! "$2" =~ mangalib ]]; then
+if [[ ! "$1" =~ mangalib ]]; then
     jo result=notmine
     exit 0
 fi
 
-URL="$2" # E.g.: https://mangalib.me/ru/230767--my-co-worker-is-an-eldritch-being
+URL="$1" # E.g.: https://mangalib.me/ru/230767--my-co-worker-is-an-eldritch-being
 URL="${URL%%\?*}" # Remove query part
 DIR="$XDG_CACHE_HOME/uniplayer/mangalib"
 
@@ -30,7 +29,7 @@ read -r NAME < <(http "https://api.cdnlibs.org/api/$REQNAME" \
 
 NAME="${NAME//\//-}"
 IFS=$'\t' read -r MARKED VOLUME NUMBER STITLE < <(http "https://api.cdnlibs.org/api/$REQNAME/chapters" \
-    | jq -r '.data[] | "\(.volume)\t\(.number)\t\(.name)"' \
+    | jq -r '.data[] | [.volume, .number, .name] | @tsv' \
     | mark "$DIR/$NAME" \
     | fzf)
 
@@ -41,20 +40,23 @@ mkdir -p "$DIR"
 
 PDFFILE="$DIR/$NAME - $VOLUME-$NUMBER - $STITLE.pdf"
 if [[ "$MARKED" != "(cached)" ]]; then
+    read -r IMGTMPDIR < <(mktemp -d)
+
     FILES=()
     URLS=()
     while IFS=$'\t' read -r URL FILE; do
         FILES+=("$FILE")
         URLS+=("$URL")
     done < <(http "https://api.cdnlibs.org/api/$REQNAME/chapter?volume=$VOLUME&number=$NUMBER" \
-        | jq -r '.data.pages[] | "https://img33.imgslib.link\(.url)\t'"$DIR/"'\(.url | split("/")[-1])"')
+        | jq --arg dir "$IMGTMPDIR" -r \
+        '.data.pages[] | "https://img33.imgslib.link\(.url)\t\($dir)/\(.url | split("/")[-1])"')
 
-    echo Extract pages... >&2
+    echo Mangalib: Extract pages... >&2
     parallel --colsep='\t' -kq http GET {1} "referer:$DOMAIN" -o {2} ::: "${URLS[@]}" :::+ "${FILES[@]}"
-    echo Create pdf... >&2
+    echo Mangalib: Create pdf... >&2
     pdfcpu import -c disable "$PDFFILE" "${FILES[@]}" >&2
-    echo Remove pages... >&2
-    rm "${FILES[@]}"
+    echo Mangalib: Remove pages... >&2
+    rm -r "$IMGTMPDIR"
 fi
 
 jo result=pdf url="$PDFFILE"
