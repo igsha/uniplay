@@ -82,5 +82,5 @@ while [[ "$FIXPOINT" -eq 1 ]]; do
     done
 done
 
-echo "No fix point"
-exit 1
+echo "No fix point, trying mpv..."
+exec mpv "$1"
