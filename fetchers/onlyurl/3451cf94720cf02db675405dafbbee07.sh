@@ -16,7 +16,7 @@ choice() {
     while [[ "$ID" == next ]]; do
         URL="${1}&page=$TITLE"
         PAGENUM=$((TITLE+1))
-        IFS=$'\t' read -r TITLE ID < <(http GET "$URL" \
+        IFS=$'\t' read -r TITLE ID < <(http GET "$URL" "referer:https://$DOMAIN" \
             | jq -r '(.results + [{title: "'$PAGENUM'", id: "next"}]) | .[] | [.title, .id] | @tsv' \
             | fzf)
     done
@@ -35,7 +35,7 @@ else
     exit 1
 fi
 
-IFS=$'\t' read -r FILEURL FILEID TITLE < <(http GET "https://api.${DOMAIN}/video/$ID" \
+IFS=$'\t' read -r FILEURL FILEID TITLE < <(http GET "https://api.${DOMAIN}/video/$ID" "referer:https://$DOMAIN" \
     | jq -r '"\(.fileUrl)\t\(.file.id)\t\(.title)"')
 
 echo "3451cf94720cf02db675405dafbbee07: Extracted $FILEURL..." >&2

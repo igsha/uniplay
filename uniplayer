@@ -74,6 +74,8 @@ while [[ "$FIXPOINT" -eq 1 ]]; do
 
                     echo "Playing $URL..."
                     exec mpv "${ARGS[@]}";;
+                text)
+                    exec jq -r .content <<< "${JSON[@]}";;
                 *)
                     echo "Unknown json: ${JSON[@]}"
                     exit 2;;

@@ -28,14 +28,13 @@ echo "Remanga: Download list https://api.remanga.org/api/v2/titles/$REQNAME/" >&
 IFS=$'\t' read -r NAME BRANCHID < <(http GET "https://api.remanga.org/api/v2/titles/$REQNAME/" \
     | jq -r '"\(.secondary_name | sub("/"; "-"))\t\(.branches[0].id)"')
 
-echo "Remanga: Download chapters https://api.remanga.org/api/v2/titles/chapters/?branch_id=$BRANCHID&ordering=index" >&2
-APIURL="https://api.remanga.org"
+BASEURL="https://api.remanga.org/api/v2/titles/chapters/?branch_id=$BRANCHID&ordering=index"
+CHAPTER="1"
 ID=next
-CHAPTER="/api/v2/titles/chapters/?branch_id=$BRANCHID&ordering=index"
-URL="$APIURL$CHAPTER"
 ORIGIN=0
 while [[ "$ID" == next ]]; do
-    URL="$APIURL$CHAPTER"
+    URL="$BASEURL&page=$CHAPTER"
+    echo "Remanga: Download chapters $URL" >&2
     mapfile -O "$ORIGIN" -t LINES < <(http GET "$URL" \
         | jq -r '(.results + [.next | select(. != null) | {chapter: ., id: "next"}]) | .[] | [.chapter, .id] | @tsv')
     ORIGIN=$((${#LINES[@]}-1))
