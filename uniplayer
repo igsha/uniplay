@@ -21,7 +21,7 @@ while [[ "$FIXPOINT" -eq 1 ]]; do
     FIXPOINT=0
     for FETCHER_NAME in ONLYURL_FETCHERS WEBPAGE_FETCHERS; do
         if [[ "$FETCHER_NAME" == WEBPAGE_FETCHERS ]]; then
-            http GET "${HTTP_ARGS[@]}" > "$REGISTER"
+            http --follow GET "${HTTP_ARGS[@]}" > "$REGISTER"
         fi
 
         declare -n FETCHERS_REF="$FETCHER_NAME"
@@ -53,7 +53,7 @@ while [[ "$FIXPOINT" -eq 1 ]]; do
                     fi
 
                     echo "Downloading $URL...$REFERER"
-                    http GET "${HTTP_ARGS[@]}" > "$REGISTER"
+                    http --follow GET "${HTTP_ARGS[@]}" > "$REGISTER"
                     FIXPOINT=1
                     break;;
                 video)
