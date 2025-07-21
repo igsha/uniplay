@@ -13,4 +13,6 @@ IFS=$'\t' read -r ID NAME TITLE < <(grep -Po "(?<=RalodePlayer.init\().+(?=\);)"
     | jq -r '.[0] | to_entries[] | .value.name as $name | .value.items | to_entries[] | [.value.id, $name, .value.sname] | @tsv' \
     | fzf)
 
-jo result=url referer="$DOMAIN" title="$TITLE" url="$DOMAIN/video.php?id=$ID"
+URL="$DOMAIN/video.php?id=$ID"
+echo "Ralode: Extract $URL" >&2
+jo result=url referer="$DOMAIN" title="$TITLE" url="$URL"

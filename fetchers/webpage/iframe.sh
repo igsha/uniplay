@@ -9,4 +9,5 @@ if ! read -r URL < <(grep -Po '<iframe.*src="\K[^"]+' "$1" | sed 's;^//;https://
 fi
 
 read -r DOMAIN < <(grep -Po ".+//[^/]+" <<< "$URL")
+echo "iframe: Extract $URL" >&2
 jo result=url "url=$URL" "referer=$DOMAIN"

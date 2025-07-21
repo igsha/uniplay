@@ -71,6 +71,11 @@ while [[ "$FIXPOINT" -eq 1 ]]; do
                     if [[ -n "$TITLE" ]]; then
                         ARGS+=("--title=$TITLE")
                     fi
+                    if read -r SUBURL < <(jq -r ".subsurl // empty" <<< "${JSON[@]}"); then
+                        echo "Downloading subtitles $SUBURL to $REGISTER"
+                        http --follow GET "$SUBURL" > "$REGISTER"
+                        ARGS+=("--sub-file=$REGISTER")
+                    fi
 
                     echo "Playing $URL..."
                     exec mpv "${ARGS[@]}";;

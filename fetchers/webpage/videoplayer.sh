@@ -10,4 +10,10 @@ if ! read -r URL < <(xmllint "$1" --html -xpath '//video[@id="videoplayer"]/sour
     exit 0
 fi
 
-jo result=video "url=$URL"
+echo "videoplayer: Extract $URL" >&2
+if read -r SUBURL < <(grep -Po "subtitles: \K\[[^\]]+\]" "$1" | jq -r '.[0] | .src'); then
+    echo "videoplayer: Extract subs $SUBURL" >&2
+    jo result=video url="$URL" subsurl="$SUBURL"
+else
+    jo result=video url="$URL"
+fi

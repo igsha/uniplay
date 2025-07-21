@@ -22,7 +22,7 @@ mark() {
     done
 }
 
-read -r DOMAIN < <(grep -Po '.+//[^/]+' <<< "$URL")
+read -r DOMAIN < <(grep -Po '.+//[^/]+/' <<< "$URL")
 read -r REQNAME < <(grep -Po '.+//[^/]+/[^/]+/\K[^/]+' <<< "$URL")
 echo "Remanga: Download list https://api.remanga.org/api/v2/titles/$REQNAME/" >&2
 IFS=$'\t' read -r NAME BRANCHID < <(http GET "https://api.remanga.org/api/v2/titles/$REQNAME/" \
@@ -53,6 +53,7 @@ if [[ "$MARKED" != "(cached)" ]]; then
     read -r IMGTMPDIR < <(mktemp -d)
     FILES=()
     URLS=()
+    echo "Remanga: Download chapter https://api.remanga.org/api/v2/titles/chapters/$ID/" >&2
     while IFS=$'\t' read -r URL FILE; do
         FILES+=("$FILE")
         URLS+=("$URL")
