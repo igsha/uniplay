@@ -2,12 +2,10 @@
 set -e
 
 which grep http pdfcpu fzf jo jq > /dev/null
-if [[ ! "$1" =~ mangalib ]]; then
-    jo result=notmine
-    exit 0
-fi
 
-URL="$1" # E.g.: https://mangalib.me/ru/230767--my-co-worker-is-an-eldritch-being
+mapfile -t JSON
+read -r URL < <(jq -r .url <<< "${JSON[@]}")
+
 URL="${URL%%\?*}" # Remove query part
 DIR="$XDG_CACHE_HOME/uniplayer/mangalib"
 
@@ -24,11 +22,9 @@ mark() {
 
 read -r DOMAIN < <(grep -Po '.+//[^/]+' <<< "$URL")
 read -r REQNAME < <(grep -Po '.+//[^/]+/[^/]+/\K.+' <<< "$URL")
-read -r NAME < <(http "https://api.cdnlibs.org/api/$REQNAME" \
-    | jq -r .data.eng_name)
 
-NAME="${NAME//\//-}"
-IFS=$'\t' read -r MARKED VOLUME NUMBER STITLE < <(http "https://api.cdnlibs.org/api/$REQNAME/chapters" \
+NAME="${REQNAME//\//-}"
+IFS=$'\t' read -r MARKED VOLUME NUMBER STITLE < <(http GET "https://api.cdnlibs.org/api/$REQNAME/chapters" \
     | jq -r '.data[] | [.volume, .number, .name] | @tsv' \
     | mark "$DIR/$NAME" \
     | fzf)
@@ -47,7 +43,7 @@ if [[ "$MARKED" != "(cached)" ]]; then
     while IFS=$'\t' read -r URL FILE; do
         FILES+=("$FILE")
         URLS+=("$URL")
-    done < <(http "https://api.cdnlibs.org/api/$REQNAME/chapter?volume=$VOLUME&number=$NUMBER" \
+    done < <(http GET "https://api.cdnlibs.org/api/$REQNAME/chapter?volume=$VOLUME&number=$NUMBER" \
         | jq --arg dir "$IMGTMPDIR" -r \
         '.data.pages[] | "https://img33.imgslib.link\(.url)\t\($dir)/\(.url | split("/")[-1])"')
 
@@ -59,4 +55,5 @@ if [[ "$MARKED" != "(cached)" ]]; then
     rm -r "$IMGTMPDIR"
 fi
 
-jo result=pdf url="$PDFFILE"
+export PDFFILE
+<<< "${JSON[@]}" jq '.result="pdf" | .url=env.PDFFILE' | "$UNI" pdf

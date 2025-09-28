@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
 set -e
 
-which grep http jq fzf parallel magick jo pdfcpu > /dev/null
-if [[ ! "$1" =~ remanga ]]; then
-    jo result=notmine
-    exit 0
-fi
+which grep http jq fzf parallel magick pdfcpu > /dev/null
 
-URL="$1" # E.g.,https://remanga.org/manga/one-punch-man-one
+mapfile -t JSON
+read -r URL < <(jq -r .url <<< "${JSON[@]}")
+
 URL="${URL%%\?*}" # Remove query part
 DIR="$XDG_CACHE_HOME/uniplayer/remanga"
 
@@ -70,4 +68,5 @@ if [[ "$MARKED" != "(cached)" ]]; then
     rm -r "$IMGTMPDIR"
 fi
 
-jo result=pdf url="$PDFFILE"
+export PDFFILE
+<<< "${JSON[@]}" jq '.result="pdf" | .url=env.PDFFILE' | "$UNI" pdf

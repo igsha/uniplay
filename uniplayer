@@ -1,93 +1,28 @@
 #!/usr/bin/env bash
 set -e
 
-which xargs jq http > /dev/null
+which awk md5sum > /dev/null
 
-read -r REGISTER < <(mktemp -t uniplayer.XXX)
-trap "rm \"$REGISTER\"" INT EXIT
+read -r UNIPLAYER < <(realpath "$0")
+read -r SCRIPT_DIR < <(dirname "$UNIPLAYER")
+UNI="$SCRIPT_DIR/uni"
 
-FETCHERS_DIR="$(dirname "$0")/fetchers"
-mapfile -t ONLYURL_FETCHERS < <(find "$FETCHERS_DIR/onlyurl" -type f -executable -print)
-mapfile -O "${#ONLYURL_FETCHERS[@]}" -t ONLYURL_FETCHERS < <(find "$XDG_CONFIG_HOME/uniplayer/fetchers/onlyurl" -type f -executable)
-mapfile -t WEBPAGE_FETCHERS < <(find "$FETCHERS_DIR/webpage" -type f -executable -print)
-mapfile -O "${#WEBPAGE_FETCHERS[@]}" -t WEBPAGE_FETCHERS < <(find "$XDG_CONFIG_HOME/uniplayer/fetchers/webpage" -type f -executable)
-
-FIXPOINT=1
-REFERER=
-TITLE=
 URL="$1"
-HTTP_ARGS=("$URL")
-while [[ "$FIXPOINT" -eq 1 ]]; do
-    FIXPOINT=0
-    for FETCHER_NAME in ONLYURL_FETCHERS WEBPAGE_FETCHERS; do
-        if [[ "$FETCHER_NAME" == WEBPAGE_FETCHERS ]]; then
-            http --follow GET "${HTTP_ARGS[@]}" > "$REGISTER"
-        fi
+if [[ "$URL" =~ https?:// ]]; then
+    read -r DOMAIN < <(awk -F/ '{print $3}' <<< "$URL")
+    read -r ONLYHOST < <(awk -F. '{print $(NF-1)}' <<< "$DOMAIN")
+    read -r HOSTHASH < <(md5sum <<< "$ONLYHOST" | cut -c -32)
 
-        declare -n FETCHERS_REF="$FETCHER_NAME"
-        for FETCHER in "${FETCHERS_REF[@]}"; do
-            if [[ "$FETCHER_NAME" == WEBPAGE_FETCHERS ]]; then
-                mapfile -t JSON < <("$FETCHER" "$REGISTER" "$URL")
-            else
-                mapfile -t JSON < <("$FETCHER" "$URL")
-            fi
-
-            read -r RESULT < <(jq -r .result <<< "${JSON[@]}")
-            case "$RESULT" in
-                notmine) continue;;
-                pdf)
-                    read -r FILEPATH < <(jq -r .url <<< "${JSON[@]}")
-                    echo "Opening $FILEPATH..."
-                    exec xdg-open "$FILEPATH";;
-                url)
-                    read -r URL < <(jq -r .url <<< "${JSON[@]}")
-                    HTTP_ARGS=("$URL")
-                    if read -r TREF < <(jq -r '.referer // empty' <<< "${JSON[@]}"); then
-                        REFERER="$TREF"
-                    fi
-                    if [[ -n "$REFERER" ]]; then
-                        HTTP_ARGS+=("referer:$REFERER")
-                    fi
-                    if read -r TTITLE < <(jq -r ".title // empty" <<< "${JSON[@]}"); then
-                        TITLE="$TTITLE"
-                    fi
-
-                    echo "Downloading $URL...$REFERER"
-                    http --follow GET "${HTTP_ARGS[@]}" > "$REGISTER"
-                    FIXPOINT=1
-                    break;;
-                video)
-                    read -r URL < <(jq -r .url <<< "${JSON[@]}")
-                    ARGS=("$URL")
-                    if read -r TREF < <(jq -r '.referer // empty' <<< "${JSON[@]}"); then
-                        REFERER="$TREF"
-                    fi
-                    if [[ -n "$REFERER" ]]; then
-                        ARGS+=("--http-header-fields=Referer: $REFERER")
-                    fi
-                    if read -r TTITLE < <(jq -r ".title // empty" <<< "${JSON[@]}"); then
-                        TITLE="$TTITLE"
-                    fi
-                    if [[ -n "$TITLE" ]]; then
-                        ARGS+=("--title=$TITLE")
-                    fi
-                    if read -r SUBURL < <(jq -r ".subsurl // empty" <<< "${JSON[@]}"); then
-                        echo "Downloading subtitles $SUBURL to $REGISTER"
-                        http --follow GET "$SUBURL" > "$REGISTER"
-                        ARGS+=("--sub-file=$REGISTER")
-                    fi
-
-                    echo "Playing $URL..."
-                    exec mpv "${ARGS[@]}";;
-                text)
-                    exec jq -r .content <<< "${JSON[@]}";;
-                *)
-                    echo "Unknown json: ${JSON[@]}"
-                    exit 2;;
-            esac
-        done
-    done
-done
-
-echo "No fix point, trying mpv..."
-exec mpv "$1"
+    case "$HOSTHASH" in
+        c015fff88070de99d94611d6da69b934) "$UNI" c015fff88070de99d94611d6da69b934 "$URL";;
+        3451cf94720cf02db675405dafbbee07) "$UNI" 3451cf94720cf02db675405dafbbee07 "$URL";;
+        *) echo "Unimplemented fetcher for $URL" >&2 && exit 1;;
+    esac
+else
+    if [[ "$1" =~ \.ulst$ ]]; then
+        read -r URL < <("$UNI" ulst "$URL" | jq -r .url)
+        "$UNIPLAYER" "$URL"
+    else
+        echo "Unimplemented fetcher for $URL" >&2 && exit 2
+    fi
+fi

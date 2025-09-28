@@ -1,14 +1,21 @@
 #!/usr/bin/env bash
 set -e
 
-which http jo jq fzf > /dev/null
-if [[ ! "$1" =~ https?://rutube\.ru/channel/([0-9]+)/?([a-z]+)?/? ]]; then
-    jo result=notmine
-    exit 0
+which http jq fzf > /dev/null
+
+mapfile -t JSON
+read -r URL < <(jq -r .url <<< "${JSON[@]}")
+
+if [[ "$URL" =~ https?://rutube\.ru/u/[0-9A-Za-z]+/?([a-z]+)?/? ]]; then
+    read -r USERID < <(http --follow GET "$URL" | grep -Po '"userChannelId":\K\d+' | head -1)
+    FOLDER=${BASH_REMATCH[1]:-videos}
+else
+    [[ "$URL" =~ https?://rutube\.ru/channel/([0-9]+)/?([a-z]+)?/? ]] || { echo "Bad url $URL"; exit 1; }
+    USERID="${BASH_REMATCH[1]}"
+    FOLDER=${BASH_REMATCH[2]:-videos}
 fi
 
-USERID="${BASH_REMATCH[1]}"
-FOLDER=${BASH_REMATCH[2]:-videos}
+echo "user=$USERID folder=$FOLDER"
 if [[ "$FOLDER" == videos ]]; then
     FIRSTURL="https://rutube.ru/api/video/person/$USERID/?origin__type=rtb,rst,ifrm,rspa&page=1"
     URLBASE="https://rutube.ru/video"
@@ -30,4 +37,5 @@ while [[ "$ID" == next ]]; do
 done
 URL="$URLBASE/$ID/"
 
-jo result=video "title=$TITLE" "url=$URL"
+export URL TITLE
+jq '.url=env.URL | .title=env.TITLE' <<< "${JSON[@]}" | "$UNI" mpv

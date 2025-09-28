@@ -2,12 +2,13 @@
 set -e
 
 which http jo jq fzf > /dev/null
-if [[ ! "$1" =~ https?://rutube\.ru/plst/([0-9]+)/? ]]; then
-    jo result=notmine
-    exit 0
-fi
 
+mapfile -t JSON
+read -r URL < <(jq -r .url <<< "${JSON[@]}")
+
+[[ "$URL" =~ https?://rutube\.ru/plst/([0-9]+)/? ]]
 PLAYLIST="${BASH_REMATCH[1]}"
+
 ID=next
 TITLE="https://rutube.ru/api/playlist/custom/$PLAYLIST/videos/?page=1"
 while [[ "$ID" == next ]]; do
@@ -16,6 +17,6 @@ while [[ "$ID" == next ]]; do
         | jq -r '(.results + [.next | select(. != null) | {title: ., id: "next"}]) | .[] | [.title, .id] | @tsv' \
         | fzf)
 done
-URL="https://rutube.ru/video/$ID/"
 
-jo result=video "title=$TITLE" "url=$URL"
+export URL="https://rutube.ru/video/$ID/" TITLE
+<<< "${JSON[@]}" jq '.url=env.URL | .title=env.TITLE' | "$UNI" mpv
