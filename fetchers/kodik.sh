@@ -33,7 +33,5 @@ for ((rot=0; rot<25; ++rot)); do
     fi
 done
 
-export TITLE
-export STITLE
-export URL
-jq '.url=env.URL | .title="\(env.TITLE) - \(env.STITLE)"' <<< "${JSON[@]}" | "$UNI" mpv
+export TITLE STITLE URL
+<<< "${JSON[@]}" jq '.url=env.URL | .title="\(env.TITLE) - \(env.STITLE)"' | "$UNIPLAY" -f mpv

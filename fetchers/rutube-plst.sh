@@ -19,4 +19,4 @@ while [[ "$ID" == next ]]; do
 done
 
 export URL="https://rutube.ru/video/$ID/" TITLE
-<<< "${JSON[@]}" jq '.url=env.URL | .title=env.TITLE' | "$UNI" mpv
+<<< "${JSON[@]}" jq '.url=env.URL | .title=env.TITLE' | "$UNIPLAY" -f mpv

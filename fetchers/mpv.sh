@@ -7,6 +7,7 @@ ARGS=()
 mapfile -t JSON
 if ! read -r ARGS[0] < <(jq -r '.url // empty' <<< "${JSON[@]}"); then
     readarray -t ARGS < <(jq -r '.urls[]' <<< "${JSON[@]}")
+    [[ "${#ARGS[@]}" -gt 0 ]]
 fi
 echo "mpv: Extract ${ARGS[@]}" >&2
 

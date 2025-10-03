@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+set -e
+
+which awk md5sum jo jq cut xargs > /dev/null
+
+read -r UNIPLAY < <(realpath "$0")
+read -r SCRIPT_DIR < <(dirname "$UNIPLAY")
+export UNIPLAY
+
+if [[ "$1" == -f ]]; then
+    NAME="$2"
+    read -r HASH < <(md5sum <<< "$NAME" | cut -c -32)
+    POSSIBLE_FETCHERS=(\
+        "$SCRIPT_DIR/fetchers/$NAME.sh" \
+        "$SCRIPT_DIR/fetchers/$HASH.sh" \
+        "$XDG_CONFIG_HOME/uniplay/fetchers/$NAME.sh" \
+        "$XDG_CONFIG_HOME/uniplay/fetchers/$HASH.sh" \
+    )
+
+    FETCHER=
+    for CHECK_FETCHER in "${POSSIBLE_FETCHERS[@]}"; do
+        if [[ -e "$CHECK_FETCHER" ]]; then
+            FETCHER="$CHECK_FETCHER"
+            break
+        fi
+    done
+    if [[ ! -e "$FETCHER" ]]; then
+        echo "Cannot find $NAME" >&2
+        exit 1
+    fi
+
+    if [[ -n "$3" ]]; then
+        "$FETCHER" < <(jo result="url" url="$3" uniplay="$UNIPLAY")
+    else
+        "$FETCHER"
+    fi
+else
+    URL="$1"
+    if [[ "$URL" =~ https?:// ]]; then
+        read -r DOMAIN < <(awk -F/ '{print $3}' <<< "$URL")
+        read -r ONLYHOST < <(awk -F. '{print $(NF-1)}' <<< "$DOMAIN")
+        read -r HOSTHASH < <(md5sum <<< "$ONLYHOST" | cut -c -32)
+
+        FETCHER="$ONLYHOST"
+        case "$FETCHER" in
+            mangalib|remanga|kodik|rutube) ;;
+            *)
+                case "$HOSTHASH" in
+                    c015fff88070de99d94611d6da69b934) FETCHER=c015fff88070de99d94611d6da69b934;;
+                    3451cf94720cf02db675405dafbbee07) FETCHER=3451cf94720cf02db675405dafbbee07;;
+                    *) echo "Unimplemented fetcher for $URL" >&2 && exit 2;;
+                esac;;
+        esac
+
+        "$UNIPLAY" -f "$FETCHER" "$URL"
+    elif [[ "$1" =~ \.ulst$ ]]; then
+        "$UNIPLAY" -f ulst "$URL" | "$UNIPLAY"
+    else
+        jq -r .url | xargs -o "$UNIPLAY"
+    fi
+fi

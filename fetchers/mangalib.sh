@@ -56,4 +56,4 @@ if [[ "$MARKED" != "(cached)" ]]; then
 fi
 
 export PDFFILE
-<<< "${JSON[@]}" jq '.result="pdf" | .url=env.PDFFILE' | "$UNI" pdf
+<<< "${JSON[@]}" jq '.result="pdf" | .url=env.PDFFILE' | "$UNIPLAY" -f pdf

@@ -57,6 +57,5 @@ if ! http -hq --check-status --timeout=2.4 GET "$URL" 2>/dev/null; then
     done
 fi
 
-export URL
-export TITLE
-jq '.title=env.TITLE | .url=env.URL' <<< "${JSON[@]}" | "$UNI" mpv
+export URL TITLE
+<<< "${JSON[@]}" jq '.title=env.TITLE | .url=env.URL' | "$UNIPLAY" -f mpv

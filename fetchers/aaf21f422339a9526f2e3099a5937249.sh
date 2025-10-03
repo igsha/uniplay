@@ -20,4 +20,4 @@ for URL in "${URSL[@]}"; do
 done
 
 export URL="${URLS[0]}" TITLE
-jq '.url=env.URL | .title=env.TITLE' <<< "${JSON[@]}" | "$UNI" mpv
+<<< "${JSON[@]}" jq '.url=env.URL | .title=env.TITLE' | "$UNIPLAY" -f mpv

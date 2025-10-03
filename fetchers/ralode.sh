@@ -19,8 +19,6 @@ IFS=$'\t' read -r ID NAME TITLE < <(grep -Po "(?<=RalodePlayer.init\().+(?=\);)"
     | jq -r '.[0] | to_entries[] | .value.name as $name | .value.items | to_entries[] | [.value.id, $name, .value.sname] | @tsv' \
     | fzf)
 
-export URL="$DOMAIN/video.php?id=$ID"
+export URL="$DOMAIN/video.php?id=$ID" DOMAIN TITLE
 echo "Ralode: Extract $URL" >&2
-export DOMAIN
-export TITLE
 jq '.title=env.TITLE | .referer=env.DOMAIN | .url=env.URL' <<< "${JSON[@]}"

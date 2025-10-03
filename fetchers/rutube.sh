@@ -35,7 +35,6 @@ while [[ "$ID" == next ]]; do
         | jq -r '(.results + [.next | select(. != null) | {title: ., id: "next"}]) | .[] | [.title, .id] | @tsv' \
         | fzf)
 done
-URL="$URLBASE/$ID/"
 
-export URL TITLE
-jq '.url=env.URL | .title=env.TITLE' <<< "${JSON[@]}" | "$UNI" mpv
+export TITLE URL="$URLBASE/$ID/"
+<<< "${JSON[@]}" jq '.url=env.URL | .title=env.TITLE' | "$UNIPLAY" -f mpv
