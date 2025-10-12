@@ -15,7 +15,7 @@ mapfile -t URLS < <(htmlq 'video > source' -a src < "$REGISTER")
 
 read -r TITLE < <(htmlq 'head > title' -t < "$REGISTER")
 
-for URL in "${URSL[@]}"; do
+for URL in "${URLS[@]}"; do
     echo "aaf21f422339a9526f2e3099a5937249: Extract $URL" >&2
 done
 

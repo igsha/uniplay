@@ -9,53 +9,39 @@ export UNIPLAY
 
 if [[ "$1" == -f ]]; then
     NAME="$2"
-    read -r HASH < <(md5sum <<< "$NAME" | cut -c -32)
-    POSSIBLE_FETCHERS=(\
-        "$SCRIPT_DIR/fetchers/$NAME.sh" \
-        "$SCRIPT_DIR/fetchers/$HASH.sh" \
-        "$XDG_CONFIG_HOME/uniplay/fetchers/$NAME.sh" \
-        "$XDG_CONFIG_HOME/uniplay/fetchers/$HASH.sh" \
-    )
-
-    FETCHER=
-    for CHECK_FETCHER in "${POSSIBLE_FETCHERS[@]}"; do
-        if [[ -e "$CHECK_FETCHER" ]]; then
-            FETCHER="$CHECK_FETCHER"
-            break
-        fi
-    done
-    if [[ ! -e "$FETCHER" ]]; then
-        echo "Cannot find $NAME" >&2
-        exit 1
-    fi
-
-    if [[ -n "$3" ]]; then
-        "$FETCHER" < <(jo result="url" url="$3" uniplay="$UNIPLAY")
-    else
-        "$FETCHER"
-    fi
-else
+    URL="$3"
+elif [[ "$1" =~ https?:// ]]; then
+    read -r DOMAIN < <(awk -F/ '{print $3}' <<< "$1")
+    read -r NAME < <(awk -F. '{print $(NF-1)}' <<< "$DOMAIN")
     URL="$1"
-    if [[ "$URL" =~ https?:// ]]; then
-        read -r DOMAIN < <(awk -F/ '{print $3}' <<< "$URL")
-        read -r ONLYHOST < <(awk -F. '{print $(NF-1)}' <<< "$DOMAIN")
-        read -r HOSTHASH < <(md5sum <<< "$ONLYHOST" | cut -c -32)
+elif [[ "$1" =~ \.ulst$ ]]; then
+    exec "$UNIPLAY" -f ulst "$1" | "$UNIPLAY"
+else
+    exec jq -r .url | xargs -o "$UNIPLAY"
+fi
 
-        FETCHER="$ONLYHOST"
-        case "$FETCHER" in
-            mangalib|remanga|kodik|rutube) ;;
-            *)
-                case "$HOSTHASH" in
-                    c015fff88070de99d94611d6da69b934) FETCHER=c015fff88070de99d94611d6da69b934;;
-                    3451cf94720cf02db675405dafbbee07) FETCHER=3451cf94720cf02db675405dafbbee07;;
-                    *) echo "Unimplemented fetcher for $URL" >&2 && exit 2;;
-                esac;;
-        esac
+read -r HASH < <(md5sum <<< "$NAME" | cut -c -32)
+POSSIBLE_FETCHERS=(\
+    "$SCRIPT_DIR/fetchers/$NAME.sh" \
+    "$SCRIPT_DIR/fetchers/$HASH.sh" \
+    "$XDG_CONFIG_HOME/uniplay/fetchers/$NAME.sh" \
+    "$XDG_CONFIG_HOME/uniplay/fetchers/$HASH.sh" \
+)
 
-        "$UNIPLAY" -f "$FETCHER" "$URL"
-    elif [[ "$1" =~ \.ulst$ ]]; then
-        "$UNIPLAY" -f ulst "$URL" | "$UNIPLAY"
-    else
-        jq -r .url | xargs -o "$UNIPLAY"
+FETCHER=
+for CHECK_FETCHER in "${POSSIBLE_FETCHERS[@]}"; do
+    if [[ -e "$CHECK_FETCHER" ]]; then
+        FETCHER="$CHECK_FETCHER"
+        break
     fi
+done
+if [[ ! -e "$FETCHER" ]]; then
+    echo "Cannot find $NAME" >&2
+    exit 1
+fi
+
+if [[ -n "$URL" ]]; then
+    "$FETCHER" < <(jo result="url" url="$URL" uniplay="$UNIPLAY")
+else
+    "$FETCHER"
 fi

@@ -11,7 +11,7 @@ fi
 
 read -r REGISTER < <(mktemp -t uniplayer.ralode.XXX)
 trap "rm \"$REGISTER\"" INT EXIT
-http --follow --timeout 5 GET "$URL" $REFERER > "$REGISTER"
+http --follow --timeout 10 GET "$URL" $REFERER > "$REGISTER"
 
 read -r DOMAIN < <(grep -Po ".+//[^/]+" <<< "$URL")
 IFS=$'\t' read -r ID NAME TITLE < <(grep -Po "(?<=RalodePlayer.init\().+(?=\);)" "$REGISTER" \

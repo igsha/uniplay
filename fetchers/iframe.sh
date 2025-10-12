@@ -11,7 +11,7 @@ fi
 
 read -r REGISTER < <(mktemp -t uniplayer.iframe.XXX)
 trap "rm \"$REGISTER\"" INT EXIT
-http --follow --timeout 5 GET "$URL" $REFERER > "$REGISTER"
+http --follow --timeout 10 GET "$URL" $REFERER > "$REGISTER"
 
 read -r URL < <(grep -Po '<iframe.*src="\K[^"]+' "$REGISTER" | sed 's;^//;https://;')
 read -r DOMAIN < <(grep -Po ".+//[^/]+" <<< "$URL")
