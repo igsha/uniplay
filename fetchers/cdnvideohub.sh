@@ -11,7 +11,7 @@ jq -r .url <<< "${ORIGJSON[@]}" \
 http GET "$URL" \
     | mapfile -t JSON
 
-jq -r .titleName <<< "${JSON[@]}" \
+jq -r '.titleName[0:100] + if (.titleName | length) > 100 then "..." else "" end' <<< "${JSON[@]}" \
     | read -r TITLE
 
 jq '.items
@@ -23,13 +23,17 @@ jq '.items
     })' <<< "${JSON[@]}" \
     | mapfile -t JSON
 
-jq -r '.[] | [.count, .name] | @tsv' <<< "${JSON[@]}" \
-    | fzf --accept-nth 2 \
-    | IFS=$'\t' read -r VOICE
+if [[ "$URL" =~ dubbing_code=([^&]+) ]]; then
+    VOICE="${BASH_REMATCH[1]/+/ }"
+else
+    jq -r '.[] | [.count, .name] | @tsv' <<< "${JSON[@]}" \
+        | fzf -d $'\t' --accept-nth 2 \
+        | read -r VOICE
+fi
 
 export VOICE
 jq -r '.[] | select(.name == env.VOICE) | .name as $n | .series[] | [$n, "\(.season)-\(.episode)", .vkId] | @tsv' <<< "${JSON[@]}" \
-    | fzf --accept-nth 2,3 \
+    | fzf -d $'\t' --accept-nth 2,3 \
     | IFS=$'\t' read -r STITLE VKID
 
 echo "cdnvideohub: Extract https://plapi.cdnvideohub.com/api/v1/player/sv/video/$VKID" >&2
@@ -39,7 +43,6 @@ http GET "https://plapi.cdnvideohub.com/api/v1/player/sv/video/$VKID" \
             | (.mpeg4kUrl // .mpeg2kUrl // .mpegQhdUrl // .mpegFullHdUrl // .mpegHighUrl // .hlsUrl // .dashUrl)' \
     | read -r URL
 
-TITLE="$TITLE - $STITLE"
-export URL TITLE
+export URL TITLE="$TITLE - $STITLE"
 <<< "${ORIGJSON[@]}" jq '.url=env.URL | .title=env.TITLE' \
     | "$UNIPLAY" -f mpv
