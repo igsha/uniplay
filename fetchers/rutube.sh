@@ -15,7 +15,7 @@ else
     FOLDER=${BASH_REMATCH[2]:-videos}
 fi
 
-echo "user=$USERID folder=$FOLDER"
+echo "rutube: user=$USERID folder=$FOLDER" >&2
 if [[ "$FOLDER" == videos ]]; then
     FIRSTURL="https://rutube.ru/api/video/person/$USERID/?origin__type=rtb,rst,ifrm,rspa&page=1"
     URLBASE="https://rutube.ru/video"
@@ -31,6 +31,7 @@ ID=next
 TITLE="$FIRSTURL"
 while [[ "$ID" == next ]]; do
     URL="$TITLE"
+    echo "rutube: List $URL" >&2
     IFS=$'\t' read -r TITLE ID < <(http GET "$URL" \
         | jq -r '(.results + [.next | select(. != null) | {title: ., id: "next"}]) | .[] | [.title, .id] | @tsv' \
         | fzf)

@@ -15,9 +15,11 @@ elif [[ "$1" =~ https?:// ]]; then
     read -r NAME < <(awk -F. '{print $(NF-1)}' <<< "$DOMAIN")
     URL="$1"
 elif [[ "$1" =~ \.ulst$ ]]; then
-    exec "$UNIPLAY" -f ulst "$1" | "$UNIPLAY"
+    "$UNIPLAY" -f ulst "$1" | "$UNIPLAY"
+    exit 0
 else
-    exec jq -r .url | xargs -o "$UNIPLAY"
+    jq -r .url | xargs -o "$UNIPLAY"
+    exit 0
 fi
 
 read -r HASH < <(md5sum <<< "$NAME" | cut -c -32)
@@ -41,7 +43,7 @@ if [[ ! -e "$FETCHER" ]]; then
 fi
 
 if [[ -n "$URL" ]]; then
-    "$FETCHER" < <(jo result="url" url="$URL" uniplay="$UNIPLAY")
+    jo result="url" url="$URL" uniplay="$UNIPLAY" | "$FETCHER"
 else
     "$FETCHER"
 fi
