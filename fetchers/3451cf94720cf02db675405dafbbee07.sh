@@ -19,7 +19,12 @@ choice() {
 
 mapfile -t JSON
 read -r URL < <(jq -r .url <<< "${JSON[@]}")
-read -r DOMAIN < <(awk -F/ '{gsub("www.", ""); print $3}' <<< "$URL")
+[[ "$URL" =~ ([^:]+):// ]]
+if [[ "${BASH_REMATCH[1]:0:4}" == http ]]; then
+    read -r DOMAIN < <(awk -F/ '{gsub("www.", ""); print $3}' <<< "$URL")
+else
+    DOMAIN="${BASH_REMATCH[1]}"
+fi
 
 if [[ "$URL" =~ tags=([^&]+) ]]; then
     choice "https://api.${DOMAIN}/videos?tags=${BASH_REMATCH[1]}&sort=date"

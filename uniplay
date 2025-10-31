@@ -1,28 +1,40 @@
 #!/usr/bin/env bash
 set -e
+shopt -s lastpipe
 
 which awk md5sum jo jq cut xargs > /dev/null
 
-read -r UNIPLAY < <(realpath "$0")
-read -r SCRIPT_DIR < <(dirname "$UNIPLAY")
+realpath "$0" | read -r UNIPLAY
+dirname "$UNIPLAY" | read -r SCRIPT_DIR
 export UNIPLAY
 
 if [[ "$1" == -f ]]; then
     NAME="$2"
     URL="$3"
-elif [[ "$1" =~ https?:// ]]; then
-    read -r DOMAIN < <(awk -F/ '{print $3}' <<< "$1")
-    read -r NAME < <(awk -F. '{print $(NF-1)}' <<< "$DOMAIN")
-    URL="$1"
+elif [[ -z "$1" || "$1" =~ [^:]+:// ]]; then
+    if [[ -z "$1" ]]; then
+        jq -r .url | read -r URL
+    else
+        URL="$1"
+    fi
+
+    [[ "$URL" =~ ([^:]+)://([^/]+) ]]
+    if [[ "${BASH_REMATCH[1]:0:4}" == http ]]; then
+        DOMAIN="${BASH_REMATCH[2]}"
+    else
+        DOMAIN="${BASH_REMATCH[1]}"
+    fi
+
+    awk -F. '{print $(NF-1)}' <<< "$DOMAIN" | read -r NAME
 elif [[ "$1" =~ \.ulst$ ]]; then
     "$UNIPLAY" -f ulst "$1" | "$UNIPLAY"
     exit 0
 else
-    jq -r .url | xargs -o "$UNIPLAY"
-    exit 0
+    echo "uniplay: Unexpected arguments or input" >&2
+    exit 2
 fi
 
-read -r HASH < <(md5sum <<< "$NAME" | cut -c -32)
+md5sum <<< "$NAME" | cut -c -32 | read -r HASH
 POSSIBLE_FETCHERS=(\
     "$SCRIPT_DIR/fetchers/$NAME.sh" \
     "$SCRIPT_DIR/fetchers/$HASH.sh" \
@@ -38,8 +50,8 @@ for CHECK_FETCHER in "${POSSIBLE_FETCHERS[@]}"; do
     fi
 done
 if [[ ! -e "$FETCHER" ]]; then
-    echo "Cannot find $NAME" >&2
-    exit 1
+    echo "uniplay: Cannot find $NAME" >&2
+    exit 3
 fi
 
 if [[ -n "$URL" ]]; then

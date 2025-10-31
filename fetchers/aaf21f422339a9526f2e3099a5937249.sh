@@ -6,6 +6,10 @@ which jq http htmlq > /dev/null
 
 mapfile -t JSON
 read -r URL < <(jq -r .url <<< "${JSON[@]}")
+if [[ "$URL" =~ ([^:]+)://(.+) && "${BASH_REMATCH[1]:0:4}" != http ]]; then
+    URL="https://${BASH_REMATCH[1]}/${BASH_REMATCH[2]}"
+    echo "aaf21f422339a9526f2e3099a5937249: Convert to $URL" >&2
+fi
 
 read -r REGISTER < <(mktemp -t uniplayer.aaf2.XXX)
 trap "rm \"$REGISTER\"" INT EXIT

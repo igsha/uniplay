@@ -19,7 +19,7 @@ fi
 read -r TDIR < <(mktemp -d -t uniplay.download.XXX)
 echo "download: Save results to $TDIR" >&2
 
-mapfile -t FILES < <(parallel -k echo "$TDIR/{/}" ::: "${URLS[@]}")
+mapfile -t FILES < <(parallel -k echo "$TDIR/{/}" '| tr -d "()"' ::: "${URLS[@]}")
 parallel -kq http --follow --timeout 10 -o "{2}" GET "{1}" $REFERER ::: "${URLS[@]}" :::+ "${FILES[@]}"
 
 export TDIR

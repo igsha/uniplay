@@ -6,9 +6,9 @@ which jq grep http > /dev/null
 mapfile -t JSON
 read -r URL < <(jq -r .url <<< "${JSON[@]}")
 
-[[ "$URL" =~ [^/]+://[^/]+/tag/([^/]+)/?([0-9]+)?/? ]]
-TAGNAME="${BASH_REMATCH[1]}"
-PAGE="${BASH_REMATCH[2]}"
+[[ "$URL" =~ [^/]+://([^/]+/)?tag/([^/]+)/?([0-9]+)?/? ]]
+TAGNAME="${BASH_REMATCH[2]}"
+PAGE="${BASH_REMATCH[3]}"
 URLS=()
 while ((${#URLS[@]} < 12)); do
     if [[ -n "$PAGE" ]]; then
