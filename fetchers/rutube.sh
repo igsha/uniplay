@@ -1,18 +1,25 @@
 #!/usr/bin/env bash
 set -e
+shopt -s lastpipe
 
 which http jq fzf > /dev/null
 
 mapfile -t JSON
-read -r URL < <(jq -r .url <<< "${JSON[@]}")
+jq -r .url <<< "${JSON[@]}" | read -r URL
 
 if [[ "$URL" =~ https?://rutube\.ru/u/[0-9A-Za-z]+/?([a-z]+)?/? ]]; then
-    read -r USERID < <(http --follow GET "$URL" | grep -Po '"userChannelId":\K\d+' | head -1)
+    http --follow GET "$URL" | grep -Po '"userChannelId":\K\d+' | head -1 | read -r USERID
     FOLDER=${BASH_REMATCH[1]:-videos}
-else
-    [[ "$URL" =~ https?://rutube\.ru/channel/([0-9]+)/?([a-z]+)?/? ]] || { echo "Bad url $URL"; exit 1; }
+elif [[ "$URL" =~ https?://rutube\.ru/channel/([0-9]+)/?([a-z]+)?/? ]]; then
     USERID="${BASH_REMATCH[1]}"
     FOLDER=${BASH_REMATCH[2]:-videos}
+elif [[ "$URL" =~ /video/([0-9a-z]+)/? ]]; then
+    exec "$UNIPLAY" -f rutube-video <<< "${JSON[@]}"
+elif [[ "$URL" =~ /plst/([0-9]+)/? ]]; then
+    exec "$UNIPLAY" -f rutube-plst <<< "${JSON[@]}"
+else
+    echo "rutube: Bad url $URL" >&2
+    exit 1
 fi
 
 echo "rutube: user=$USERID folder=$FOLDER" >&2
@@ -32,9 +39,10 @@ TITLE="$FIRSTURL"
 while [[ "$ID" == next ]]; do
     URL="$TITLE"
     echo "rutube: List $URL" >&2
-    IFS=$'\t' read -r TITLE ID < <(http GET "$URL" \
+    http GET "$URL" \
         | jq -r '(.results + [.next | select(. != null) | {title: ., id: "next"}]) | .[] | [.title, .id] | @tsv' \
-        | fzf)
+        | fzf \
+        | IFS=$'\t' read -r TITLE ID
 done
 
 export TITLE URL="$URLBASE/$ID/"
