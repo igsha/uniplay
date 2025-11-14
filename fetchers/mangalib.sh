@@ -4,7 +4,7 @@ set -e
 which grep http pdfcpu fzf jo jq > /dev/null
 
 mapfile -t JSON
-read -r URL < <(jq -r .url <<< "${JSON[@]}")
+read -r URL < <(jq -r .item <<< "${JSON[@]}")
 
 URL="${URL%%\?*}" # Remove query part
 DIR="$XDG_CACHE_HOME/uniplayer/mangalib"
@@ -45,7 +45,7 @@ if [[ "$MARKED" != "(cached)" ]]; then
         URLS+=("$URL")
     done < <(http GET "https://api.cdnlibs.org/api/$REQNAME/chapter?volume=$VOLUME&number=$NUMBER" \
         | jq --arg dir "$IMGTMPDIR" -r \
-        '.data.pages[] | "https://img33.imgslib.link\(.url)\t\($dir)/\(.url | split("/")[-1])"')
+        '.data.pages[] | "https://img33.imgslib.link\(.item)\t\($dir)/\(.item | split("/")[-1])"')
 
     echo Mangalib: Extract pages... >&2
     parallel --colsep='\t' -kq http GET {1} "referer:$DOMAIN" -o {2} ::: "${URLS[@]}" :::+ "${FILES[@]}"
@@ -56,4 +56,4 @@ if [[ "$MARKED" != "(cached)" ]]; then
 fi
 
 export PDFFILE
-<<< "${JSON[@]}" jq '.result="pdf" | .url=env.PDFFILE' | "$UNIPLAY" -f pdf
+<<< "${JSON[@]}" jq '.result="pdf" | .item=env.PDFFILE' | "$UNIPLAY" -f pdf

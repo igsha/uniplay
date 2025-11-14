@@ -6,7 +6,7 @@ which jq jo > /dev/null
 
 mapfile -t JSON
 printf "%s\n" "${JSON[@]}" \
-    | jq -r .url \
+    | jq -r .item \
     | read -r URL
 
 if [[ "$URL" =~ [^/]+://[^/]+/manga/[^/]+/?$ ]]; then
@@ -16,12 +16,12 @@ if [[ "$URL" =~ [^/]+://[^/]+/manga/[^/]+/?$ ]]; then
 
     <<< "${JSON[@]}" "$UNIPLAY" -f manga-shi-list \
         | "$UNIPLAY" -f marksel \
-        | jq -r '.url' \
+        | jq -r '.item' \
         | read -r URL
 fi
 
 echo "manga-shi: Download chapter $URL" >&2
-jo result=url url="$URL" \
+jo result=url item="$URL" \
     | "$UNIPLAY" -f manga-shi-chapter \
     | "$UNIPLAY" -f download \
     | "$UNIPLAY" -f create-pdf \

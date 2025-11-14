@@ -6,7 +6,7 @@ which jq jo http htmlq tr sed > /dev/null
 
 mapfile -t JSON
 printf "%s\n" "${JSON[@]}" \
-    | jq -r .url \
+    | jq -r .item \
     | read -r URL
 
 echo "manga-shi-chapter: List chapter $URL" >&2
@@ -22,4 +22,4 @@ http --follow GET "$URL" \
     | jo -a \
     | read -r URLS
 
-jo result=urls urls="$URLS" title="$TITLE"
+jo result=urls items="$URLS" title="$TITLE"

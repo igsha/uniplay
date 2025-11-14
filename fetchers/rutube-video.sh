@@ -5,7 +5,7 @@ shopt -s lastpipe
 which jq http rg sort head awk > /dev/null
 
 mapfile -t JSON
-jq -r .url <<< "${JSON[@]}" | read -r URL
+jq -r .item <<< "${JSON[@]}" | read -r URL
 
 [[ "$URL" =~ [^/]+://[^/]+/[^/]+/([0-9a-z]+)/? ]]
 URL="https://rutube.ru/api/play/options/${BASH_REMATCH[1]}"
@@ -35,5 +35,5 @@ echo "rutube-video: Select ${WIDTH}x${HEIGHT} resolution" >&2
 echo "rutube-video: Select server $URL" >&2
 export URL TITLE
 <<< "${JSON[@]}" \
-    jq '.url=env.URL | .title=env.TITLE' \
+    jq '.item=env.URL | .title=env.TITLE' \
     | "$UNIPLAY" -f mpv

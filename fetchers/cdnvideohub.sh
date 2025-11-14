@@ -5,7 +5,7 @@ shopt -s lastpipe
 which jq http fzf > /dev/null
 
 mapfile -t ORIGJSON
-jq -r .url <<< "${ORIGJSON[@]}" \
+jq -r .item <<< "${ORIGJSON[@]}" \
     | read -r URL
 
 http GET "$URL" \
@@ -44,5 +44,5 @@ http GET "https://plapi.cdnvideohub.com/api/v1/player/sv/video/$VKID" \
     | read -r URL
 
 export URL TITLE="$TITLE - $STITLE"
-<<< "${ORIGJSON[@]}" jq '.url=env.URL | .title=env.TITLE' \
+<<< "${ORIGJSON[@]}" jq '.item=env.URL | .title=env.TITLE' \
     | "$UNIPLAY" -f mpv

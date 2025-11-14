@@ -5,7 +5,7 @@ shopt -s lastpipe
 which http jq fzf > /dev/null
 
 mapfile -t JSON
-jq -r .url <<< "${JSON[@]}" | read -r URL
+jq -r .item <<< "${JSON[@]}" | read -r URL
 
 if [[ "$URL" =~ https?://rutube\.ru/u/[0-9A-Za-z]+/?([a-z]+)?/? ]]; then
     http --follow GET "$URL" | grep -Po '"userChannelId":\K\d+' | head -1 | read -r USERID
@@ -46,4 +46,4 @@ while [[ "$ID" == next ]]; do
 done
 
 export TITLE URL="$URLBASE/$ID/"
-<<< "${JSON[@]}" jq '.url=env.URL | .title=env.TITLE' | "$UNIPLAY" -f mpv
+<<< "${JSON[@]}" jq '.item=env.URL | .title=env.TITLE' | "$UNIPLAY" -f mpv

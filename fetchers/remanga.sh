@@ -4,7 +4,7 @@ set -e
 which grep http jq fzf parallel magick pdfcpu > /dev/null
 
 mapfile -t JSON
-read -r URL < <(jq -r .url <<< "${JSON[@]}")
+read -r URL < <(jq -r .item <<< "${JSON[@]}")
 
 URL="${URL%%\?*}" # Remove query part
 DIR="$XDG_CACHE_HOME/uniplayer/remanga"
@@ -69,4 +69,4 @@ if [[ "$MARKED" != "(cached)" ]]; then
 fi
 
 export PDFFILE
-<<< "${JSON[@]}" jq '.result="pdf" | .url=env.PDFFILE' | "$UNIPLAY" -f pdf
+<<< "${JSON[@]}" jq '.result="pdf" | .item=env.PDFFILE' | "$UNIPLAY" -f pdf

@@ -5,7 +5,7 @@ shopt -s lastpipe
 which jq sqlite3 fzf > /dev/null
 
 mapfile -t JSON
-<<< "${JSON[@]}" jq -r '.urls[]' \
+<<< "${JSON[@]}" jq -r '.items[]' \
     | mapfile -t ITEMS
 
 <<< "${JSON[@]}" jq -r '.names[]' \
@@ -37,4 +37,4 @@ echo "marksel: Update db $DB" >&2
 sqlite3 "$DB" "insert into '$TBLNAME' (name) values ('$NAME');" >&2
 
 export NAME ITEM
-<<< "${JSON[@]}" jq '.url=env.ITEM | .title=env.NAME | del(.names) | del(.urls)'
+<<< "${JSON[@]}" jq '.item=env.ITEM | .title=env.NAME | del(.names) | del(.items)'

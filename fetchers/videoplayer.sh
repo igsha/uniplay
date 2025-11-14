@@ -4,7 +4,7 @@ set -e
 which grep jq http xmllint jo > /dev/null
 
 mapfile -t JSON
-read -r URL < <(jq -r .url <<< "${JSON[@]}")
+read -r URL < <(jq -r .item <<< "${JSON[@]}")
 if read -r REFERER < <(jq -r '.referer // empty' <<< "${JSON[@]}"); then
     REFERER="referer:$REFERER"
 fi
@@ -28,4 +28,4 @@ if read -r SUBURL < <(grep -Po "subtitles: \K\[[^\]]+\]" "$REGISTER" | jq -r '.[
 fi
 
 read -r URLS < <(jo -a "${URLS[@]}")
-jq --argjson urls "$URLS" '.result="urls" | del(.url) | .urls=$urls'"$CMDPART" <<< "${JSON[@]}"
+jq --argjson urls "$URLS" '.result="urls" | del(.item) | .items=$urls'"$CMDPART" <<< "${JSON[@]}"

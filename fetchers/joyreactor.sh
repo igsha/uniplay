@@ -4,7 +4,7 @@ set -e
 which jq grep http > /dev/null
 
 mapfile -t JSON
-read -r URL < <(jq -r .url <<< "${JSON[@]}")
+read -r URL < <(jq -r .item <<< "${JSON[@]}")
 
 [[ "$URL" =~ [^/]+://([^/]+/)?tag/([^/]+)/?([0-9]+)?/? ]]
 TAGNAME="${BASH_REMATCH[2]}"
@@ -68,4 +68,4 @@ EOF
                         ] | @tsv' <<< "${JSON[@]}")
 done
 
-jo result=urls urls=$(jo -a "${URLS[@]}")
+jo result=urls items=$(jo -a "${URLS[@]}")

@@ -6,9 +6,9 @@ which jq tr http parallel > /dev/null
 mapfile -t JSON
 SINGLEURL=1
 URLS=()
-if ! read -r URLS[0] < <(jq -r '.url // empty' <<< "${JSON[@]}"); then
+if ! read -r URLS[0] < <(jq -r '.item // empty' <<< "${JSON[@]}"); then
     SINGLEURL=0
-    readarray -t URLS < <(jq -r '.urls[]' <<< "${JSON[@]}")
+    readarray -t URLS < <(jq -r '.items[]' <<< "${JSON[@]}")
     [[ "${#URLS[@]}" -gt 0 ]]
 fi
 
@@ -24,8 +24,8 @@ parallel -kq http --follow --timeout 10 -o "{2}" GET "{1}" $REFERER ::: "${URLS[
 
 export TDIR
 if [[ "$SINGLEURL" -eq 1 ]]; then
-    jq --arg url "${FILES[0]}" '.url="$url" | .dir=env.TDIR'
+    jq --arg url "${FILES[0]}" '.item="$url" | .dir=env.TDIR'
 else
     read -r URLS < <(jo -a "${FILES[@]}")
-    jq --argjson urls "$URLS" '.urls=$urls | .dir=env.TDIR'
+    jq --argjson urls "$URLS" '.items=$urls | .dir=env.TDIR'
 fi <<< "${JSON[@]}"

@@ -3,7 +3,7 @@ set -e
 shopt -s lastpipe
 
 mapfile -t JSON
-<<< "${JSON[@]}" jq -r '.urls[]' \
+<<< "${JSON[@]}" jq -r '.items[]' \
     | mapfile -t URLS
 
 FILES=()
@@ -43,4 +43,4 @@ mktemp -u -t uniplay.create-pdf.XXX.pdf \
 export PDFFILE
 pdfcpu import -c disable "$PDFFILE" "${RESULT[@]}" >&2
 
-<<< "${JSON[@]}" jq 'del(.urls) | .url=env.PDFFILE | .result="pdf" | .istemp=true'
+<<< "${JSON[@]}" jq 'del(.items) | .item=env.PDFFILE | .result="pdf" | .istemp=true'

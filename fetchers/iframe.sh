@@ -4,7 +4,7 @@ set -e
 which grep http jo > /dev/null
 
 mapfile -t JSON
-read -r URL < <(jq -r .url <<< "${JSON[@]}")
+read -r URL < <(jq -r .item <<< "${JSON[@]}")
 if read -r REFERER < <(jq -r '.referer // empty' <<< "${JSON[@]}"); then
     REFERER="referer:$REFERER"
 fi
@@ -18,4 +18,4 @@ read -r DOMAIN < <(grep -Po ".+//[^/]+" <<< "$URL")
 echo "iframe: Extract $URL" >&2
 
 export URL DOMAIN
-<<< "${JSON[@]}" jq '.result="url" | .url=env.URL | .referer=env.DOMAIN'
+<<< "${JSON[@]}" jq '.result="url" | .item=env.URL | .referer=env.DOMAIN'

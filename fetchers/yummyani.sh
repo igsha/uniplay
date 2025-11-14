@@ -5,7 +5,7 @@ shopt -s lastpipe
 which jq http awk grep rg > /dev/null
 
 mapfile -t JSON
-<<< "${JSON[@]}" jq -r .url \
+<<< "${JSON[@]}" jq -r .item \
     | read -r URL
 
 [[ "$URL" =~ anime_id=([0-9]+) ]]
@@ -31,5 +31,5 @@ http GET "$URL" \
 echo "aggr=$AGGR pub=$PUBLISHER" >&2
 
 export URL="https://plapi.cdnvideohub.com/api/v1/player/sv/playlist?pub=${PUB}&aggr=${AGGR}&id=${ID}"
-<<< "${JSON[@]}" jq '.url=env.URL' \
+<<< "${JSON[@]}" jq '.item=env.URL' \
     | "$UNIPLAY" -f cdnvideohub

@@ -18,7 +18,7 @@ choice() {
 }
 
 mapfile -t JSON
-read -r URL < <(jq -r .url <<< "${JSON[@]}")
+read -r URL < <(jq -r .item <<< "${JSON[@]}")
 [[ "$URL" =~ ([^:]+):// ]]
 if [[ "${BASH_REMATCH[1]:0:4}" == http ]]; then
     read -r DOMAIN < <(awk -F/ '{gsub("www.", ""); print $3}' <<< "$URL")
@@ -63,4 +63,4 @@ if ! http -hq --check-status --timeout=2.4 GET "$URL" 2>/dev/null; then
 fi
 
 export URL TITLE
-<<< "${JSON[@]}" jq '.title=env.TITLE | .url=env.URL' | "$UNIPLAY" -f mpv
+<<< "${JSON[@]}" jq '.title=env.TITLE | .item=env.URL' | "$UNIPLAY" -f mpv

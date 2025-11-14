@@ -5,7 +5,7 @@ shopt -s lastpipe
 which jq http fzf > /dev/null
 
 mapfile -t JSON
-jq -r .url <<< "${JSON[@]}" | read -r URL
+jq -r .item <<< "${JSON[@]}" | read -r URL
 
 [[ "$URL" =~ [^/]+://[^/]+/[^/]+/([0-9]+)/? ]]
 ID=next
@@ -22,5 +22,5 @@ done
 export URL="https://rutube.ru/video/$ID/"
 echo "rutube-plst: Extract $URL"
 <<< "${JSON[@]}" \
-    jq '.url=env.URL' \
+    jq '.item=env.URL' \
     | "$UNIPLAY" -f rutube-video

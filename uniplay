@@ -13,7 +13,7 @@ if [[ "$1" == -f ]]; then
     URL="$3"
 elif [[ -z "$1" || "$1" =~ [^:]+:// ]]; then
     if [[ -z "$1" ]]; then
-        jq -r .url | read -r URL
+        jq -r .item | read -r URL
     else
         URL="$1"
     fi
@@ -55,7 +55,7 @@ if [[ ! -e "$FETCHER" ]]; then
 fi
 
 if [[ -n "$URL" ]]; then
-    jo result="url" url="$URL" uniplay="$UNIPLAY" | "$FETCHER"
+    jo result=url item="$URL" uniplay="$UNIPLAY" | "$FETCHER"
 else
     "$FETCHER"
 fi

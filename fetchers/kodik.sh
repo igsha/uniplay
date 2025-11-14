@@ -4,7 +4,7 @@ set -e
 which jq grep http rg xq fzf tr base64 sed > /dev/null
 
 mapfile -t JSON
-read -r URL < <(jq -r .url <<< "${JSON[@]}")
+read -r URL < <(jq -r .item <<< "${JSON[@]}")
 
 read -r DOMAIN < <(grep -Po ".+//[^/]+" <<< "$URL")
 
@@ -34,4 +34,4 @@ for ((rot=0; rot<25; ++rot)); do
 done
 
 export TITLE STITLE URL
-<<< "${JSON[@]}" jq '.url=env.URL | .title="\(env.TITLE) - \(env.STITLE)"' | "$UNIPLAY" -f mpv
+<<< "${JSON[@]}" jq '.item=env.URL | .title="\(env.TITLE) - \(env.STITLE)"' | "$UNIPLAY" -f mpv
