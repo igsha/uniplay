@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -ex
+set -e
 shopt -s lastpipe
 
 mapfile -t JSON
@@ -13,7 +13,6 @@ echo "remanga: Extract $URL" >&2
 
 <<< "${JSON[@]}" "$UNIPLAY" -f remanga-list \
     | "$UNIPLAY" -f remanga-chapter \
-    | jq '.referer=env.DOMAIN' \
     | "$UNIPLAY" -f download \
     | "$UNIPLAY" -f create-pdf \
     | "$UNIPLAY" -f pdf
