@@ -57,5 +57,10 @@ fi
 if [[ -n "$URL" ]]; then
     jo result=url item="$URL" uniplay="$UNIPLAY" | "$FETCHER"
 else
-    "$FETCHER"
+    mapfile -t JSON
+    <<< "${JSON[@]}" "$FETCHER"
+    if <<< "${JSON[@]}" jq -r '.delete // empty' | read -r TMPFILE; then
+        echo "uniplay: Delete temporary $TMPFILE" >&2
+        rm -r "$TMPFILE"
+    fi
 fi

@@ -2,6 +2,8 @@
 set -e
 shopt -s lastpipe
 
+which jq jo magick pdfcpu tac > /dev/null
+
 mapfile -t JSON
 <<< "${JSON[@]}" jq -r '.items[]' \
     | mapfile -t URLS
@@ -23,7 +25,6 @@ echo "create-pdf: Crop images to ${TW}x$TH" >&2
 mktemp -d -t uniplay.create-pdf.XXX \
     | read -r TDIR
 trap "rm -r \"$TDIR\"" INT EXIT
-echo "create-pdf: Use temp dir $TDIR" >&2
 
 # memory exhaustive method
 magick \( "${FILES[@]}" -gravity center -append \) +repage -crop "${TW}x$TH" "$TDIR/uniplay.create-pdf.cropped.%04d.jpg"
@@ -40,7 +41,6 @@ fi
 mktemp -u -t uniplay.create-pdf.XXX.pdf \
     | read -r PDFFILE
 
-export PDFFILE
 pdfcpu import -c disable "$PDFFILE" "${RESULT[@]}" >&2
 
-<<< "${JSON[@]}" jq 'del(.items) | .item=env.PDFFILE | .result="pdf" | .istemp=true'
+jo result=pdf item="$PDFFILE" delete="$PDFFILE"

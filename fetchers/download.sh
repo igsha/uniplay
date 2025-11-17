@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -e
+shopt -s lastpipe
 
-which jq tr http parallel > /dev/null
+which jq jo tr http parallel > /dev/null
 
 mapfile -t JSON
 SINGLEURL=1
@@ -24,8 +25,8 @@ parallel -kq http --follow --timeout 10 -o "{2}" GET "{1}" $REFERER ::: "${URLS[
 
 export TDIR
 if [[ "$SINGLEURL" -eq 1 ]]; then
-    jq --arg url "${FILES[0]}" '.item="$url" | .dir=env.TDIR'
+    jo result=file item="${FILES[0]}" detele="$TDIR"
 else
-    read -r URLS < <(jo -a "${FILES[@]}")
-    jq --argjson urls "$URLS" '.items=$urls | .dir=env.TDIR'
-fi <<< "${JSON[@]}"
+    jo -a "${FILES[@]}" \
+        | jo result=files items=:- delete="$TDIR"
+fi
