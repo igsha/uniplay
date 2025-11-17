@@ -18,7 +18,7 @@ if read -r TITLE < <(jq -r '.title // empty' <<< "${JSON[@]}"); then
     ARGS+=("--title=$TITLE")
 fi
 if read -r SUBURL < <(jq -r '.subsurl // empty' <<< "${JSON[@]}"); then
-    read -r REGISTER < <(mktemp -t uniplayer.mpv.XXX)
+    read -r REGISTER < <(mktemp -t uniplay.mpv.XXX)
     trap "rm \"$REGISTER\"" INT EXIT
     echo "Downloading subtitles $SUBURL to $REGISTER"
     http --follow GET "$SUBURL" > "$REGISTER"

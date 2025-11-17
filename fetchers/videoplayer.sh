@@ -1,31 +1,28 @@
 #!/usr/bin/env bash
 set -e
+shopt -s lastpipe
 
-which grep jq http xmllint jo > /dev/null
+which grep jq http jo parallel > /dev/null
 
 mapfile -t JSON
-read -r URL < <(jq -r .item <<< "${JSON[@]}")
-if read -r REFERER < <(jq -r '.referer // empty' <<< "${JSON[@]}"); then
+<<< "${JSON[@]}" jq -r '.item,(.title // "")' \
+    | { read -r URL; read -r TITLE; }
+
+if <<< "${JSON[@]}" jq -r '.referer // empty' | read -r REFERER; then
     REFERER="referer:$REFERER"
 fi
 
-read -r REGISTER < <(mktemp -t uniplayer.videoplayer.XXX)
-trap "rm \"$REGISTER\"" INT EXIT
-http --follow --timeout 5 GET "$URL" $REFERER > "$REGISTER"
+http --follow --timeout 5 GET "$URL" $REFERER \
+    | mapfile HTML
 
-readarray -t URLS < <(xmllint "$REGISTER" --html -xpath '//video[@id="videoplayer"]/source//@src' 2>/dev/null \
-    | grep -Po 'src="\K[^"]+')
+<<< "${HTML[@]}" htmlq 'video > source' -a src \
+    | readarray -t URLS
 
-for URL in "${URLS[@]}"; do
-    echo "videoplayer: Extract $URL" >&2
-done
+parallel -k echo "videoplayer: Extract {}" ::: "${URLS[@]}" >&2
 
-CMDPART=""
-if read -r SUBURL < <(grep -Po "subtitles: \K\[[^\]]+\]" "$REGISTER" | jq -r '.[0] | .src'); then
+if <<< "${HTML[@]}" grep -Po "subtitles: \K\[[^\]]+\]" | jq -r '.[0] | .src' | read -r SUBURL; then
     echo "videoplayer: Extract subs $SUBURL" >&2
-    export SUBURL
-    CMDPART='| .subsurl=env.SUBURL'
 fi
 
-read -r URLS < <(jo -a "${URLS[@]}")
-jq --argjson urls "$URLS" '.result="urls" | del(.item) | .items=$urls'"$CMDPART" <<< "${JSON[@]}"
+jo -a "${URLS[@]}" \
+    | jo result=urls items=:- -n title="$TITLE" suburl="$SUBURL"

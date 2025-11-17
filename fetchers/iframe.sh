@@ -1,21 +1,27 @@
 #!/usr/bin/env bash
 set -e
+shopt -s lastpipe
 
-which grep http jo > /dev/null
+which grep http jo jq > /dev/null
 
 mapfile -t JSON
-read -r URL < <(jq -r .item <<< "${JSON[@]}")
-if read -r REFERER < <(jq -r '.referer // empty' <<< "${JSON[@]}"); then
+<<< "${JSON[@]}" jq -r '.item,(.title // "")' \
+    | { read -r URL; read -r TITLE; }
+
+if <<< "${JSON[@]}" jq -r '.referer // empty' | read -r REFERER; then
     REFERER="referer:$REFERER"
 fi
 
-read -r REGISTER < <(mktemp -t uniplayer.iframe.XXX)
-trap "rm \"$REGISTER\"" INT EXIT
-http --follow --timeout 10 GET "$URL" $REFERER > "$REGISTER"
+http --follow --timeout 10 GET "$URL" $REFERER \
+    | mapfile HTML
 
-read -r URL < <(grep -Po '<iframe.*src="\K[^"]+' "$REGISTER" | sed 's;^//;https://;')
-read -r DOMAIN < <(grep -Po ".+//[^/]+" <<< "$URL")
+<<< "${HTML[@]}" grep -Po '<iframe.*src="\K[^"]+' \
+    | sed 's;^//;https://;' \
+    | read -r URL
+
+[[ "$URL" =~ [^/]+://[^/]+/ ]]
+export DOMAIN="${BASH_REMATCH[0]}"
+
 echo "iframe: Extract $URL" >&2
 
-export URL DOMAIN
-<<< "${JSON[@]}" jq '.result="url" | .item=env.URL | .referer=env.DOMAIN'
+jo result=url item="$URL" referer="$DOMAIN" -n title="$TITLE"
