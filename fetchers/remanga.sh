@@ -6,9 +6,6 @@ mapfile -t JSON
 <<< "${JSON[@]}" jq -r .item \
     | read -r URL
 
-[[ "$URL" =~ ([^/]+://[^/]+)/ ]]
-export DOMAIN="${BASH_REMATCH[1]}"
-
 echo "remanga: Extract $URL" >&2
 
 <<< "${JSON[@]}" "$UNIPLAY" -f remanga-list \

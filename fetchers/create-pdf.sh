@@ -8,6 +8,8 @@ mapfile -t JSON
 <<< "${JSON[@]}" jq -r '.items[]' \
     | mapfile -t URLS
 
+[[ "${#URLS[@]}" -gt 0 ]]
+
 FILES=()
 declare -i TW=0 ACCH=0
 magick identify -format $'%w\t%h\t%i\n' "${URLS[@]}" | while IFS=$'\t' read -r W H N; do
