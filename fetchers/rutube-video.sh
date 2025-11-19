@@ -8,7 +8,8 @@ mapfile -t JSON
 jq -r .item <<< "${JSON[@]}" | read -r URL
 
 [[ "$URL" =~ [^/]+://[^/]+/[^/]+/([0-9a-z]+)/? ]]
-URL="https://rutube.ru/api/play/options/${BASH_REMATCH[1]}"
+VIDEOID="${BASH_REMATCH[1]}"
+URL="https://rutube.ru/api/play/options/$VIDEOID"
 
 echo "rutube-video: Extract $URL" >&2
 http GET "$URL" \
@@ -33,7 +34,22 @@ echo "rutube-video: Select ${WIDTH}x${HEIGHT} resolution" >&2
     | read -r URL
 
 echo "rutube-video: Select server $URL" >&2
-export URL TITLE
-<<< "${JSON[@]}" \
-    jq '.item=env.URL | .title=env.TITLE' \
-    | "$UNIPLAY" -f mpv
+
+DESCURL="https://rutube.ru/api/video/$VIDEOID"
+echo "rutube-video: Extract description $DESCURL" >&2
+http GET "$DESCURL" \
+    | jq -r .description \
+    | mapfile -t LINES
+
+CHAPTERS=()
+for LINE in "${LINES[@]}"; do
+    if [[ "$LINE" =~ ([0-9]+:)?[0-9]{1,2}:[0-9]{2}[[:blank:]]*.+ ]]; then
+        CHAPTERS+=("${BASH_REMATCH[0]}")
+    fi
+done
+
+if [[ "${#CHAPTERS[@]}" -gt 0 ]]; then
+    printf "rutube-video: (Chapter) %s\n" "${CHAPTERS[@]}" >&2
+fi
+
+jo result=url item="$URL" title="$TITLE"
