@@ -8,9 +8,10 @@ in pipeline (except terminal fetchers like `pdf` or `mpv`).
 To communicate fetchers with each other through stdin/stdout the JSON format of messages is used.
 
 There are 3 types of fetchers:
-#. URL-matched fetcher can parse url.
-#. Terminal fetcher can read stdin but it does not produce output.
-#. Utility fetcher is used by URL-matched fetchers.
+
+1. URL-matched fetcher can parse url.
+1. Terminal fetcher can read stdin but it does not produce output.
+1. Utility fetcher is used by URL-matched fetchers.
 
 # Protocol
 

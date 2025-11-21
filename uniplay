@@ -36,10 +36,10 @@ fi
 
 md5sum <<< "$NAME" | cut -c -32 | read -r HASH
 POSSIBLE_FETCHERS=(\
-    "$SCRIPT_DIR/fetchers/$NAME.sh" \
-    "$SCRIPT_DIR/fetchers/$HASH.sh" \
     "$XDG_CONFIG_HOME/uniplay/fetchers/$NAME.sh" \
     "$XDG_CONFIG_HOME/uniplay/fetchers/$HASH.sh" \
+    "$SCRIPT_DIR/fetchers/$NAME.sh" \
+    "$SCRIPT_DIR/fetchers/$HASH.sh" \
 )
 
 FETCHER=

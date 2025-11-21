@@ -19,8 +19,9 @@ echo "3451cf94720cf02db675405dafbbee07-item: Extracted $FILEURL..." >&2
 <<< "$FILEURL" grep -Po 'expires=\K\d+' \
     | read -r EXPIRES
 
-echo "3451cf94720cf02db675405dafbbee07-item: X-Version: ${FILEID}_${EXPIRES}_5nFp9kmbNnHdAFhaqMvt" >&2
-printf "%s_%d_5nFp9kmbNnHdAFhaqMvt" "$FILEID" "$EXPIRES" \
+XVERSION="${FILEID}_${EXPIRES}_5nFp9kmbNnHdAFhaqMvt"
+echo "3451cf94720cf02db675405dafbbee07-item: X-Version=$XVERSION" >&2
+printf "%s" "$XVERSION" \
     | sha1sum \
     | awk '{print $1}' \
     | read -r XVERSION
