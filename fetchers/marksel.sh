@@ -34,7 +34,7 @@ done \
     | IFS=$'\t' read -r NAME HASH ITEM
 
 
-echo "marksel: Update $HASH in $TBLNAME ($DB)" >&2
+echo "marksel: Update $HASH in [$TBLNAME] ($DB)" >&2
 sqlite3 "$DB" "insert into '$TBLNAME' (hash) values ('$HASH');" >&2
 
 jo result=list item="$ITEM" title="$NAME"
