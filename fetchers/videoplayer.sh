@@ -25,4 +25,4 @@ if <<< "${HTML[@]}" grep -Po "subtitles: \K\[[^\]]+\]" | jq -r '.[0] | .src' | r
 fi
 
 jo -a "${URLS[@]}" \
-    | jo result=urls items=:- -n title="$TITLE" suburl="$SUBURL"
+    | jo result=urls items=:- -n title="$TITLE" subsurl="$SUBURL"
