@@ -7,7 +7,7 @@ which jq http jo sed htmlq grep > /dev/null
 jq -r .item \
     | read -r URL
 
-http GET "$URL" \
+http --follow GET "$URL" \
     | mapfile HTML
 
 <<< "${HTML[@]}" htmlq '.wp-manga-chapter a' -a href \
