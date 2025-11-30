@@ -37,4 +37,15 @@ done \
 echo "marksel: Update $HASH in [$TBLNAME] ($DB)" >&2
 sqlite3 "$DB" "insert into '$TBLNAME' (hash) values ('$HASH');" >&2
 
-jo result=list item="$ITEM" title="$NAME"
+if <<< "${JSON[@]}" jq -r '.pattern // empty' | read -r PATTERN && [[ "$ITEM" =~ "$PATTERN" ]]; then
+    <<< "${JSON[@]}" jq -r .call \
+        | read -r CALL
+
+    echo "marksel: Callback [$CALL], pattern [$PATTERN]" >&2
+    <<< "${JSON[@]}" jq .args \
+        | jo result=list item="$ITEM" title="$NAME" args=:- \
+        | "$UNIPLAY" -f "$CALL" \
+        | exec "$UNIPLAY" -f marksel
+else
+    jo result=list item="$ITEM" title="$NAME"
+fi

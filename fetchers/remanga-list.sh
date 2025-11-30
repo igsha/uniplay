@@ -8,31 +8,35 @@ mapfile -t JSON
 <<< "${JSON[@]}" jq -r .item \
     | read -r URL
 
-[[ "$URL" =~ [^/]+//[^/]+/manga/([^/?&]+) ]]
-REQNAME="${BASH_REMATCH[1]}"
-export ORIGURL="${BASH_REMATCH[0]}/"
+URLPATTERN="https://api.remanga.org/api/v2/titles/chapters"
 
-URL="https://api.remanga.org/api/v2/titles/$REQNAME/"
-echo "remanga-list: Download list $URL" >&2
-http GET "$URL" \
-    | jq -r '"\(.secondary_name | sub("/"; "-"))\t\(.branches[0].id)"' \
-    | IFS=$'\t' read -r TITLE BRANCHID
+if [[ "$URL" =~ [^/]+//[^/]+/manga/([^/?&]+) ]]; then
+    REQNAME="${BASH_REMATCH[1]}"
+    ORIGURL="${BASH_REMATCH[0]}/"
 
-echo "remanga-list: Chapters for [$TITLE] [$BRANCHID]" >&2
-
-BASEURL="https://api.remanga.org/api/v2/titles/chapters/?branch_id=$BRANCHID&ordering=-index&page="
-declare -i PAGENUM="1"
-URL="${BASEURL}$PAGENUM"
-while [[ "$URL" =~ "$BASEURL" ]]; do
-    PAGENUM+=1
-    export NEXTURL="${BASEURL}$PAGENUM"
+    URL="https://api.remanga.org/api/v2/titles/$REQNAME/"
+    echo "remanga-list: Download list $URL" >&2
     http GET "$URL" \
-        | jq '{items: (.results | map(env.ORIGURL + "\(.id)")) + [.next | select(. != null) | env.NEXTURL],
-               names: (.results | map("\(.tome)-\(.chapter)-\(.name)")) + [.next | select(. != null) | "###next###"],
-               title: "remanga"}' \
-        | "$UNIPLAY" -f marksel \
-        | jq -r .item \
-        | read -r URL
-done
+        | jq -r '(.secondary_name | sub("/"; "-")), .branches[0].id' \
+        | { read -r TITLE; read -r  BRANCHID; }
 
-jo result=url item="$URL"
+    echo "remanga-list: Chapters for [$TITLE] [$BRANCHID]" >&2
+
+    BASEURL="${URLPATTERN}/?branch_id=$BRANCHID&ordering=-index"
+    URL="${BASEURL}&page=1"
+else
+    echo "remanga-list: Continue list $URL" >&2
+    <<< "${JSON[@]}" jq -r '.args | .origurl, .baseurl' \
+        | { read -r ORIGURL; read -r BASEURL; }
+fi
+
+echo "remanga-list: Download chapters $URL" >&2
+export BASEURL ORIGURL URLPATTERN
+http --follow GET "$URL" \
+    | jq '.next as $next | .results |
+          {items: map(env.ORIGURL + "\(.id)") + [select($next != null) | env.BASEURL + "&page=\($next)"],
+           names: map("\(.tome)-\(.chapter)-\(.name)") + [select($next != null) | "###next###"],
+           title: "remanga",
+           call: "remanga-list",
+           pattern: env.URLPATTERN,
+           args: {baseurl: env.BASEURL, origurl: env.ORIGURL}}'

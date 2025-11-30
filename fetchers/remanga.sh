@@ -9,6 +9,7 @@ mapfile -t JSON
 echo "remanga: Extract $URL" >&2
 
 <<< "${JSON[@]}" "$UNIPLAY" -f remanga-list \
+    | "$UNIPLAY" -f marksel \
     | "$UNIPLAY" -f remanga-chapter \
     | "$UNIPLAY" -f download \
     | "$UNIPLAY" -f create-pdf \
