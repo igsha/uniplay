@@ -9,6 +9,7 @@ mapfile -t JSON
 echo "mangalib: Extract $URL" >&2
 
 <<< "${JSON[@]}" "$UNIPLAY" -f mangalib-list \
+    | "$UNIPLAY" -f marksel \
     | "$UNIPLAY" -f mangalib-chapter \
     | "$UNIPLAY" -f download \
     | "$UNIPLAY" -f create-pdf \

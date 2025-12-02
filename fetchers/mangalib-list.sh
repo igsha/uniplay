@@ -4,8 +4,7 @@ shopt -s lastpipe
 
 which http jq > /dev/null
 
-mapfile -t JSON
-<<< "${JSON[@]}" jq -r .item \
+jq -r .item \
     | read -r URL
 
 [[ "$URL" =~ ([^/]+://[^/]+)/ru/manga/([^/]+) ]]
@@ -16,9 +15,8 @@ URL="https://api.cdnlibs.org/api/manga/$REQNAME/chapters"
 echo "mangalib-list: Extract $URL" >&2
 
 http GET "$URL" \
-    | jq -r '.data | reverse |
+    | jq '.data | reverse |
             {result: "urls",
              items: map("\(env.DOMAIN)/ru/\(env.REQNAME)/read/v\(.volume)/c\(.number)"),
              names: map("\(.volume)-\(.number) - \(.name)"),
-             title: "mangalib"}' \
-    | "$UNIPLAY" -f marksel
+             title: "mangalib"}'
