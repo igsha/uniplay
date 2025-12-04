@@ -17,8 +17,8 @@ mapfile -t JSON
 DB="$XDG_CACHE_HOME/uniplay.db"
 
 echo "marksel: Find info [$TBLNAME] from db $DB" >&2
-sqlite3 "$DB" "create table if not exists '$TBLNAME' (hash char(32));" >&2
-sqlite3 "$DB" "select hash from '$TBLNAME';" \
+sqlite3 "$DB" "CREATE TABLE IF NOT EXISTS '$TBLNAME' (hash CHAR(32) PRIMARY KEY);" >&2
+sqlite3 "$DB" "SELECT hash FROM '$TBLNAME';" \
     | mapfile -t HASHES
 
 for i in "${!ITEMS[@]}"; do
@@ -35,7 +35,7 @@ done \
 
 
 echo "marksel: Update $HASH in [$TBLNAME] ($DB)" >&2
-sqlite3 "$DB" "insert into '$TBLNAME' (hash) values ('$HASH');" >&2
+sqlite3 "$DB" "INSERT INTO '$TBLNAME' (hash) VALUES ('$HASH');" >&2
 
 if <<< "${JSON[@]}" jq -r '.pattern // empty' | read -r PATTERN && [[ "$ITEM" =~ "$PATTERN" ]]; then
     <<< "${JSON[@]}" jq -r .call \

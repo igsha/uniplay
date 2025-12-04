@@ -15,12 +15,12 @@ http --follow --timeout 5 GET "$URL" \
 <<< "${HTML[@]}" htmlq title -t \
     | read -r TITLE
 
-export DOMAIN TITLE
+export DOMAIN
 <<< "${HTML[@]}" htmlq .serial-series-box \
     | xq '.div.select.option | {
         items: map(env.DOMAIN + "ftor?type=seria&id=" + .["@data-id"] + "&hash=" + .["@data-hash"]),
         names: map(.["@data-title"]),
-        title: "kodik-" + env.TITLE}' \
+        title: "kodik"}' \
     | "$UNIPLAY" -f marksel \
     | jq -r '.item,.title' \
     | { read -r URL; read -r STITLE; }
