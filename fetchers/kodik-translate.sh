@@ -7,13 +7,10 @@ which jq jo http htmlq xq fzf > /dev/null
 jq -r .item \
     | read -r URL
 
-DOMAIN="${URL%${URL#*//*/}}"
+export DOMAIN="${URL%${URL#*//*/}}"
 
 http --follow --timeout 5 GET "$URL" \
-    | mapfile HTML
-
-export DOMAIN TITLE
-<<< "${HTML[@]}" htmlq .serial-translations-box \
+    | htmlq .serial-translations-box \
     | xq -r '.div.select.option[] | [
         "\(env.DOMAIN)\(.["@data-media-type"])/\(.["@data-media-id"])/\(.["@data-media-hash"])/720p",
         .["#text"]] | @tsv' \

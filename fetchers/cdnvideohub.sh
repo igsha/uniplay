@@ -8,31 +8,34 @@ mapfile -t ORIGJSON
 jq -r .item <<< "${ORIGJSON[@]}" \
     | read -r URL
 
+echo "cdnvideohub: Extract $URL" >&2
 http GET "$URL" \
-    | mapfile -t JSON
+    | mapfile JSON
 
-jq -r '.titleName[0:100] + if (.titleName | length) > 100 then "..." else "" end' <<< "${JSON[@]}" \
+<<< "${JSON[@]}" jq -r '.titleName[0:100] + if (.titleName | length) > 100 then "..." else "" end' \
     | read -r TITLE
 
-jq '.items
+<<< "${JSON[@]}" jq '.items
     | group_by(.voiceStudio)
     | map({name:
-        (.[0].voiceStudio),
+        (.[0].voiceStudio | select(. | length == 0) |= "empty"),
         count: length,
         series: [.[] | pick(.season, .episode, .vkId, .cvhId)]
-    })' <<< "${JSON[@]}" \
-    | mapfile -t JSON
+    })' \
+    | mapfile JSON
 
 if [[ "$URL" =~ dubbing_code=([^&]+) ]]; then
     VOICE="${BASH_REMATCH[1]/+/ }"
 else
-    jq -r '.[] | [.count, .name] | @tsv' <<< "${JSON[@]}" \
+    echo "cdnvideohub: Select voice (series count, voice name)" >&2
+    <<< "${JSON[@]}" jq -r '.[] | [.count, .name] | @tsv' \
         | fzf -d $'\t' --accept-nth 2 \
         | read -r VOICE
 fi
 
 export VOICE
-jq -r '.[] | select(.name == env.VOICE) | .name as $n | .series[] | [$n, "\(.season)-\(.episode)", .vkId] | @tsv' <<< "${JSON[@]}" \
+echo "cdnvideohub: Select episode [$VOICE]" >&2
+<<< "${JSON[@]}" jq -r '.[] | select(.name == env.VOICE) | .name as $n | .series[] | [$n, "\(.season)-\(.episode)", .vkId] | @tsv' \
     | fzf -d $'\t' --accept-nth 2,3 \
     | IFS=$'\t' read -r STITLE VKID
 
