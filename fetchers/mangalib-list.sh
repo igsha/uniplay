@@ -16,7 +16,8 @@ echo "mangalib-list: Extract $URL" >&2
 
 http GET "$URL" \
     | jq '.data | reverse |
-            {result: "urls",
-             items: map("\(env.DOMAIN)/ru/\(env.REQNAME)/read/v\(.volume)/c\(.number)"),
-             names: map("\(.volume)-\(.number) - \(.name)"),
-             title: "mangalib"}'
+          {items: map({
+              item: "\(env.DOMAIN)/ru/\(env.REQNAME)/read/v\(.volume)/c\(.number)",
+              name: "\(.volume)-\(.number) - \(.name)"
+           }),
+           title: "mangalib"}'

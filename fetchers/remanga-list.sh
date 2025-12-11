@@ -34,8 +34,8 @@ echo "remanga-list: Download chapters $URL" >&2
 export BASEURL ORIGURL URLPATTERN
 http --follow GET "$URL" \
     | jq '.next as $next | .results |
-          {items: map(env.ORIGURL + "\(.id)") + [select($next != null) | env.BASEURL + "&page=\($next)"],
-           names: map("\(.tome)-\(.chapter)-\(.name)") + [select($next != null) | "###next###"],
+          {items: map({item: env.ORIGURL + "\(.id)", name: "\(.tome)-\(.chapter)-\(.name)"})
+              + [select($next != null) | {item: env.BASEURL + "&page=\($next)", name: "###next###"}],
            title: "remanga",
            call: "remanga-list",
            pattern: env.URLPATTERN,

@@ -8,8 +8,7 @@ jq -r .item \
     | xargs -I{} -o http --follow GET "{}" \
     | htmlq 'ul.main.version-chap' --remove-nodes .c-new-tag \
     | xq '[.. | objects | select(has("@class") and (.["@class"] | startswith("wp-manga-chapter"))) | .a] |
-          {items: map(.["@href"]),
-           names: map(.["#text"]),
+          {items: map({item: .["@href"], name: .["#text"]}),
            title: "mangaonelove"}' \
     | "$UNIPLAY" -f marksel \
     | jq -r .item \

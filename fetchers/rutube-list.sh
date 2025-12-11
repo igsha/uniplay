@@ -9,11 +9,11 @@ jq -r .item <<< "${JSON[@]}" | read -r URL
 BASEURL="${URL%\?*}"
 
 if [[ "$URL" =~ rshorts ]]; then
-    export ITEMURL="https://rutube.ru/shorts/"
+    ITEMURL="https://rutube.ru/shorts/"
 elif [[ "$URL" =~ /playlist/user/ ]]; then
-    export ITEMURL="https://rutube.ru/plst/"
+    ITEMURL="https://rutube.ru/plst/"
 else
-    export ITEMURL="https://rutube.ru/video/"
+    ITEMURL="https://rutube.ru/video/"
 fi
 
 declare -i PAGENUM=1
@@ -26,11 +26,13 @@ fi
 while [[ "$URL" =~ "$BASEURL" ]]; do
     echo "rutube-list: List $URL" >&2
     http GET "$URL" \
-        | jq -r '(.results | map({url: "\(env.ITEMURL)\(.id)", title})) + [select(.next != null) | {url: .next, title: "###next###"}]
-                 | {items: map(.url), names: map(.title), result: "urls", title: "rutube"}' \
+        | jq -r --arg itemurl "$ITEMURL" '.next as $next | .results |
+            {items: map({item: $itemurl + "\(.id)", name: .title})
+                + [select($next != null) | {item: $next, name: "###next###"}],
+             title: "rutube"}' \
         | "$UNIPLAY" -f marksel \
         | jq -r '.item' \
         | read -r URL
 done
 
-jo result="url" item="$URL"
+jo result=url item="$URL"

@@ -13,7 +13,7 @@ fi
 echo "c015fff88070de99d94611d6da69b934: Extract $URL" >&2
 
 <<< "${JSON[@]}" "$UNIPLAY" -f ralode \
-    | jq '.title="c015fff88070de99d94611d6da69b934" | .items=(.items | reverse) | .names=(.names | reverse)' \
+    | jq '[.items, .names] | transpose | {items: map({item: .[0], name: .[1]}) | reverse, title: "c015fff88070de99d94611d6da69b934"}' \
     | "$UNIPLAY" -f marksel \
     | "$UNIPLAY" -f iframe \
     | "$UNIPLAY" -f videoplayer \

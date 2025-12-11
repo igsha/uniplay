@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 shopt -s lastpipe
 
 which awk md5sum jo jq cut xargs > /dev/null
@@ -8,11 +8,11 @@ realpath "$0" | read -r UNIPLAY
 dirname "$UNIPLAY" | read -r SCRIPT_DIR
 export UNIPLAY
 
-if [[ "$1" == -f ]]; then
+if [[ "${1-default}" == -f ]]; then
     NAME="$2"
-    URL="$3"
-elif [[ -z "$1" || "$1" =~ [^:]+:// ]]; then
-    if [[ -z "$1" ]]; then
+    URL="${3-}"
+elif [[ "$#" -eq 0 || "$1" =~ [^:]+:// ]]; then
+    if [[ "$#" -eq 0 ]]; then
         jq -r .item | read -r URL
     else
         URL="$1"
@@ -26,7 +26,7 @@ elif [[ -z "$1" || "$1" =~ [^:]+:// ]]; then
     fi
 
     awk -F. '{print $(NF-1)}' <<< "$DOMAIN" | read -r NAME
-elif [[ "$1" =~ \.ulst$ ]]; then
+elif [[ "$1" =~ \.ulst$ || "$1" =~ \.m3u8$ ]]; then
     "$UNIPLAY" -f ulst "$1" | "$UNIPLAY"
     exit 0
 else

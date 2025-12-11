@@ -4,10 +4,8 @@ shopt -s lastpipe
 
 which jq jo http htmlq xq tr base64 sed > /dev/null
 
-jq -r .item \
-    | read -r URL
-
-DOMAIN="${URL%${URL#*//*/}}"
+jq -r '.item, (.item | split("/")[0:3] | join("/"))' \
+    | { read -r URL; read -r DOMAIN; }
 
 http --follow --timeout 5 GET "$URL" \
     | mapfile HTML
@@ -15,11 +13,12 @@ http --follow --timeout 5 GET "$URL" \
 <<< "${HTML[@]}" htmlq title -t \
     | read -r TITLE
 
-export DOMAIN
 <<< "${HTML[@]}" htmlq .serial-series-box \
-    | xq '.div.select.option | {
-        items: map(env.DOMAIN + "ftor?type=seria&id=" + .["@data-id"] + "&hash=" + .["@data-hash"]),
-        names: map(.["@data-title"]),
+    | xq --arg dom "$DOMAIN" '.div.select.option | reverse | {
+        items: map({
+            item: $dom + "/ftor?type=seria&id=" + .["@data-id"] + "&hash=" + .["@data-hash"],
+            name: .["@data-title"]
+        }),
         title: "kodik"}' \
     | "$UNIPLAY" -f marksel \
     | jq -r '.item,.title' \

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 shopt -s lastpipe
 
-which jq http iconv htmlq sed jo paste > /dev/null
+which jq http iconv htmlq xq sed jo > /dev/null
 
 jq -r '.item,(.item | split("/")[0:3] | join("/"))' \
     | { read -r URL; read -r DOMAIN; }
@@ -14,22 +14,14 @@ while [[ ! "$URL" =~ \?num=[0-9]+ ]]; do
         | mapfile HTML
 
     <<< "${HTML[@]}" htmlq '.ttxt2 tr:last-child a' -a href \
-        | sed "s;^;${DOMAIN}/;" \
         | read -r NEXTURL
 
-    <<< "${HTML[@]}" htmlq .title2 -a href \
-        | sed "s;^;${DOMAIN}/;" \
-        | sed "\$a$NEXTURL" \
-        | jo -a \
-        | read -r URLS
-
-    <<< "${HTML[@]}" htmlq '.tdate,.title2' -t \
-        | paste -d ' ' - - \
-        | sed '$a###next###' \
-        | jo -a \
-        | read -r NAMES
-
-    jo result=urls items="$URLS" names="$NAMES" title="opennet" \
+    <<< "${HTML[@]}" htmlq '.tdate,.title2' \
+        | sed -e '1i<div>' -e '$a</div>' \
+        | xq --arg dom "$DOMAIN" --arg nexturl "$DOMAIN$NEXTURL" '.div | [.td, .a] | transpose |
+            {items: map({item: $dom + .[1].["@href"], name: "\(.[0].["#text"]) \(.[1].["#text"])"})
+                + [{item: $nexturl, name: "###next###"}],
+             title: "opennet"}' \
         | "$UNIPLAY" -f marksel \
         | jq -r .item \
         | read -r URL
