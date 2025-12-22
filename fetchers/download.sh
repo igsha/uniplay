@@ -18,7 +18,7 @@ echo "download: Download ${#URLS[@]} files" >&2
 
 parallel -k echo "$TDIR/{/}" '| tr -d "()"' ::: "${URLS[@]}" \
     | mapfile -t FILES
-parallel -kq http --follow --timeout 30 -o "{2}" GET "{1}" $REFERER ::: "${URLS[@]}" :::+ "${FILES[@]}"
+parallel -kqj4 http --follow --timeout 30 -o "{2}" GET "{1}" $REFERER ::: "${URLS[@]}" :::+ "${FILES[@]}"
 
 jo -a "${FILES[@]}" \
     | jo result=files items=:- delete="$TDIR"
