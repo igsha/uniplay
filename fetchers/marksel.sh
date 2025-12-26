@@ -61,7 +61,7 @@ else
         | read -r HASH
 
     echo "marksel: Update $HASH in [$TBLNAME] ($DB)" >&2
-    sqlite3 "$DB" "INSERT INTO '$TBLNAME' (hash) VALUES ('$HASH');" >&2
+    sqlite3 "$DB" "INSERT OR IGNORE INTO '$TBLNAME' (hash) VALUES ('$HASH');" >&2
 
     <<< "${JSON[@]}" jq 'del(.hash)'
 fi
