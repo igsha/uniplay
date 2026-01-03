@@ -7,6 +7,8 @@ which jq jo http htmlq xq tr base64 sed > /dev/null
 jq -r '.item, (.item | split("/")[0:3] | join("/"))' \
     | { read -r URL; read -r DOMAIN; }
 
+URL="${URL%\?*}"
+echo "kodik: Download html $URL" >&2
 http --follow --timeout 5 GET "$URL" \
     | mapfile HTML
 
@@ -14,7 +16,7 @@ http --follow --timeout 5 GET "$URL" \
     | read -r TITLE
 
 <<< "${HTML[@]}" htmlq .serial-series-box \
-    | xq --arg dom "$DOMAIN" '.div.select.option | reverse | {
+    | xq --arg dom "$DOMAIN" '.div.select.option | if type == "object" then [.] else . end | reverse | {
         items: map({
             item: $dom + "/ftor?type=seria&id=" + .["@data-id"] + "&hash=" + .["@data-hash"],
             name: .["@data-title"]
