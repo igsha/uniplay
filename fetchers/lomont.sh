@@ -2,6 +2,8 @@
 set -e
 shopt -s lastpipe
 
+which jq http htmlq > /dev/null
+
 jq -r .item \
     | read -r URL
 
