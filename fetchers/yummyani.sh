@@ -29,17 +29,21 @@ if [[ "$URL" =~ anime_id=([0-9]+) ]]; then
     jo result=url item="$URL" \
         | exec "$UNIPLAY" -f cdnvideohub
 else
-    echo "yummyani: List fetcher $URL" >&2
+    echo "yummyani: Extract $URL" >&2
 
     http GET "$URL" \
         | htmlq 'meta#page_id, meta#page_type' -a content \
         | { read -r PAGEID; read -r PAGETYPE; }
 
     URL="${DOMAIN}/api/$PAGETYPE/$PAGEID/videos"
-    echo "yummyani: Extract $URL" >&2
+    echo "yummyani: List players $URL" >&2
 
     http GET "$URL" \
-        | jq '.response | {items: map({item: "https:" + .iframe_url, name: "\(.data.dubbing) \(.data.player) \(.number)"})}' \
+        | jq '.response | group_by(.data.player)
+                | map(.[0] | {
+                    item: "https:" + (.iframe_url | if contains("kodik") then sub("\\?.*"; "") end),
+                    name: .data.player})
+                | {items: .}' \
         | "$UNIPLAY" -f selector \
         | exec "$UNIPLAY"
 fi

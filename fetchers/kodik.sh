@@ -12,14 +12,12 @@ jq -r '.item, (.item | split("/")[0:3] | join("/"))' \
     | { read -r URL; read -r DOMAIN; }
 
 if [[ "$URL" =~ translations=false ]]; then
-    echo "kodik: No translate selection is needed" >&2
     EPISODE="-1"
     if [[ "$URL" =~ episode=([0-9]+) ]]; then
         EPISODE="${BASH_REMATCH[1]}"
         echo "kodik: Selected episode $EPISODE" >&2
     fi
 
-    URL="${URL%\?*}"
     echo "kodik: Download html $URL" >&2
     http --follow --timeout 5 GET "$URL" \
         | mapfile HTML
@@ -36,6 +34,7 @@ if [[ "$URL" =~ translations=false ]]; then
             title: "kodik"}' \
         | {
             if [[ "$EPISODE" -eq -1 ]]; then
+                echo "kodik: List series" >&2
                 "$UNIPLAY" -f marksel
             else
                 # negative episode due to reverse
@@ -75,6 +74,7 @@ if [[ "$URL" =~ translations=false ]]; then
     jo result=url item="$URL" title="$TITLE - $STITLE" \
         | "$UNIPLAY" -f mpv
 else
+    echo "kodik: List dubbers $URL" >&2
     http --follow --timeout 5 GET "$URL" \
         | htmlq .serial-translations-box \
         | xq --arg dom "$DOMAIN" '.div.select.option | map({
@@ -82,5 +82,5 @@ else
             name: .["#text"]})
             | {items: ., title: "kodik"}' \
         | "$UNIPLAY" -f selector \
-        | "$UNIPLAY" -f kodik
+        | exec "$UNIPLAY" -f kodik
 fi
