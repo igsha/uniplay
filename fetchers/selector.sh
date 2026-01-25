@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# Input: {items: [{item, name, [mark], [other fields...]}]}
+# Output: json with
+#   * selected item,
+#   * title - selected item name,
+#   * copied selected other fields.
 set -e
 shopt -s lastpipe
 
