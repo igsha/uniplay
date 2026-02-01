@@ -2,7 +2,7 @@
 set -euo pipefail
 shopt -s lastpipe
 
-which awk md5sum jo jq cut xargs > /dev/null
+which awk md5sum jo jq > /dev/null
 
 realpath "$0" | read -r UNIPLAY
 dirname "$UNIPLAY" | read -r SCRIPT_DIR
@@ -38,6 +38,8 @@ md5sum <<< "$NAME" | cut -c -32 | read -r HASH
 POSSIBLE_FETCHERS=(\
     "$XDG_CONFIG_HOME/uniplay/fetchers/$NAME.sh" \
     "$XDG_CONFIG_HOME/uniplay/fetchers/$HASH.sh" \
+    "$SCRIPT_DIR/../share/uniplay/fetchers/$NAME.sh" \
+    "$SCRIPT_DIR/../share/uniplay/fetchers/$HASH.sh" \
     "$SCRIPT_DIR/fetchers/$NAME.sh" \
     "$SCRIPT_DIR/fetchers/$HASH.sh" \
 )
