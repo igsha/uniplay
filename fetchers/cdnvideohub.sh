@@ -7,7 +7,7 @@
 set -e
 shopt -s lastpipe
 
-which jq http fzf > /dev/null
+which jq http tee > /dev/null
 
 mapfile JSON
 <<< "${JSON[@]}" jq -r .item \

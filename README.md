@@ -18,8 +18,8 @@ There are 3 types of fetchers:
 Common JSON message:
 ```json
 {
-    "result": "url",
     "item": "https://example.com/resource/image.jpg",
+    "title": "Example image"
 }
 ```
 Only `item` or `items` attribute is mandatory.
@@ -27,11 +27,20 @@ Only `item` or `items` attribute is mandatory.
 Several URLs:
 ```json
 {
-    "result": "urls",
     "items": [
-        "https://example.com/image1.jpg",
-        "https://example.com/image2.jpg",
-        "https://example.com/image3.jpg"
-    ]
+        {
+            "item": "https://example.com/image1.jpg",
+            "name": "Image 1"
+        },
+        {
+            "item": "https://example.com/image2.jpg",
+            "name": "Image 2"
+        },
+        {
+            "item": "https://example.com/image3.jpg",
+            "name": "Image 3"
+        }
+    ],
+    "title": "image-cache"
 }
 ```
