@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+# Input:
+#   * item - file or URL
+#   * title - window title (aka --title)
+#   * referer - referer HTTP header (aka --http-header-fields)
+#   * suburl - URL with subtitles (aka --sub-file)
+#   * chapters - array with '{start: time, end: time, text: string}' items (aka --chapters-file)
+#   * useragent - user agent HTTP header (aka --user-agent)
+# Output: no
 set -e
 shopt -s lastpipe
 
@@ -17,6 +25,10 @@ fi
 
 if <<< "${JSON[@]}" jq -r '.title // empty' | read -r TITLE; then
     ARGS+=("--title=$TITLE")
+fi
+
+if <<< "${JSON[@]}" jq -r '.useragent // empty' | read -r UA; then
+    ARGS+=("--user-agent=$UA")
 fi
 
 TEMPS=()
