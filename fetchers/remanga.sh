@@ -11,6 +11,7 @@ echo "remanga: Extract $URL" >&2
 <<< "${JSON[@]}" "$UNIPLAY" -f remanga-list \
     | "$UNIPLAY" -f marksel \
     | "$UNIPLAY" -f remanga-chapter \
+    | jq '.parallel=4' \
     | "$UNIPLAY" -f download \
     | "$UNIPLAY" -f create-pdf \
     | "$UNIPLAY" -f pdf

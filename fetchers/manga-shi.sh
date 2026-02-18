@@ -23,6 +23,7 @@ fi
 echo "manga-shi: Download chapter $URL" >&2
 jo result=url item="$URL" \
     | "$UNIPLAY" -f manga-shi-chapter \
+    | jq '.parallel=4' \
     | "$UNIPLAY" -f download \
     | "$UNIPLAY" -f create-pdf \
     | "$UNIPLAY" -f pdf

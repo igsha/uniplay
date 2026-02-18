@@ -11,7 +11,7 @@ http GET "$URL" \
     | htmlq '.post_content.cf img' -a data-src \
     | sed -e "s;^;${DOMAIN};g" -e '/.*\.gif$/d' \
     | jo -a \
-    | jo items=:- referer="$DOMAIN" \
+    | jo items=:- referer="$DOMAIN" parallel=1 \
     | "$UNIPLAY" -f download \
     | "$UNIPLAY" -f create-pdf \
     | "$UNIPLAY" -f pdf

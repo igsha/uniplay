@@ -16,7 +16,7 @@ jq -r .item \
     | xargs -I{} -o http GET "{}" \
     | htmlq '#chapter_preloaded_images' -t \
     | grep -Po '\[.+\]' \
-    | jo result=urls items=:- \
+    | jo result=urls items=:- parallel=4 \
     | "$UNIPLAY" -f download \
     | "$UNIPLAY" -f create-pdf \
     | "$UNIPLAY" -f pdf
