@@ -14,7 +14,7 @@ fi
 
 mktemp -d -t uniplay.download.XXX \
     | read -r TDIR
-echo "download: Download ${#URLS[@]} files" >&2
+echo "download: Download ${#URLS[@]} files to $TDIR" >&2
 
 parallel -k echo "$TDIR/{/}" '| tr -d "()"' ::: "${URLS[@]}" \
     | mapfile -t FILES

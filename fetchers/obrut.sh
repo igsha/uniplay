@@ -4,9 +4,16 @@ shopt -s lastpipe
 
 which jq http grep sed base64 tee > /dev/null
 
-"$UNIPLAY" -f random-user-agent \
-    | jq -r '.item, (.item | split("/")[0:3] | join("/")), .useragent' \
-    | { read -r URL; read -r DOMAIN; read -r UA; }
+jq -r '.item, (.item | split("/")[0:3] | join("/")), (.useragent // empty)' \
+    | {
+        read -r URL
+        read -r DOMAIN
+        if ! read -r UA; then
+            "$UNIPLAY" -f random-user-agent "$URL" \
+                | jq -r .useragent \
+                | read -r UA
+        fi
+    }
 
 echo "obrut: Extract $URL with ref=$DOMAIN, ua=$UA" >&2
 http GET "$URL" "referer:$DOMAIN" "user-agent:$UA" \
@@ -40,7 +47,8 @@ if [[ "$URL" =~ dubbing=([^?&]+) ]]; then
         | jq '.item |= (. | split(",") | map(
                 match("\\[(\\w+)\\]([^ ]+)")
                 | {key: .captures[0].string, value: .captures[1].string}
-            ) | reverse | sort_by(.key as $key | ["1080p", "720p"] | index($key) // 77))' \
+            ) | sort_by(.key | (match("(\\d+)p") | .captures[0].string | tonumber) // 0)
+            | reverse)' \
         | tee >(jq -r '.item[] | "obrut: [\(.key)] \(.value)"' >&2) \
         | jq --arg dom "$DOMAIN" --arg ua "$UA" '.item |= .[0].value | .referer=$dom | .useragent=$ua' \
         | exec "$UNIPLAY" -f mpv
