@@ -64,7 +64,7 @@ EOF
                     | select(.attributes[0].type == "PICTURE") |
                         [
                             (.attributes[0] | (.id | @base64d | split(":")[-1]),(.image.type | ascii_downcase)),
-                            (.tags[:3] | map(.name | gsub(" |/|#"; "-")) | join("-"))
+                            (.tags[:3] | map(.name | gsub(" |/|#|\\?"; "-")) | join("-"))
                         ] | @tsv' <<< "${JSON[@]}")
 done
 
