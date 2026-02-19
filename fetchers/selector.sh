@@ -39,7 +39,7 @@ for JSON in "${JSONS[@]}"; do
         echo
     fi
 done \
-    | fzf -d $'\t' "${FZFARGS[@]}" \
+    | fzf -1 -d $'\t' "${FZFARGS[@]}" \
     | IFS=$'\t' read -r NAME ITEM REST
 
 if <<< "${ORIGJSON[@]}" jq -r '.pattern // empty' | read -r PATTERN && [[ "$ITEM" =~ "$PATTERN" ]]; then

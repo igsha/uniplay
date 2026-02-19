@@ -50,7 +50,7 @@ if [[ "$URL" =~ dubbing=([^?&]+) ]]; then
             ) | sort_by(.key | (match("(\\d+)p") | .captures[0].string | tonumber) // 0)
             | reverse)' \
         | tee >(jq -r '.item[] | "obrut: [\(.key)] \(.value)"' >&2) \
-        | jq --arg dom "$DOMAIN" --arg ua "$UA" '.item |= .[0].value | .referer=$dom | .useragent=$ua' \
+        | jq --arg dom "$DOMAIN" --arg ua "$UA" --arg url "$URL" '.item |= .[0].value | .referer=$dom | .useragent=$ua | .replacepath=$url' \
         | exec "$UNIPLAY" -f mpv
 else
     echo "obrut: List dubbers" >&2

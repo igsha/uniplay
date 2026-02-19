@@ -55,6 +55,15 @@ if <<< "${JSON[@]}" jq -r '(.chapters // [])[] | "[CHAPTER]\nTIMEBASE=1/1000\nST
     ARGS+=("--chapters-file=$CHAPTERSFILE")
 fi
 
+if <<< "${JSON[@]}" jq -r '.replacepath // empty' | read -r REPLACEPATH; then
+    REPLACEPATH="${REPLACEPATH%\?*}"
+    dirname "${BASH_SOURCE[0]}" \
+        | read -r SCRIPT_DIR
+    ARGS+=("--script=$SCRIPT_DIR/replace-path.lua" "--script-opts-append=real-stream-url=${ARGS[0]}")
+    echo "mpv: Replace [${ARGS[0]}] by [$REPLACEPATH]" >&2
+    ARGS[0]="$REPLACEPATH"
+fi
+
 if [[ "${#TEMPS[@]}" -gt 0 ]]; then
     trap "rm ${TEMPS[@]}" INT EXIT
 fi
