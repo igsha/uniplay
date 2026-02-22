@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 set -e
+shopt -s lastpipe
 
-which jq > /dev/null
+which jq jo xargs > /dev/null
 
-mapfile -t JSON
-read -r URL < <(jq -r .item <<< "${JSON[@]}")
-read -r URL < <(grep -v "^#" "$URL" | fzf)
+jq -r .item \
+    | xargs grep -v "^#" \
+    | jo -a \
+    | jq '{items: map({item: ., name: .}), title: "ulst"}' \
+    | "$UNIPLAY" -f selector \
+    | jq -r .item \
+    | read -r URL
 
-export URL
 echo "ulst: Extract $URL" >&2
-jq '.result="url" | .item=env.URL' <<< "${JSON[@]}"
+jo result=url item="$URL"
