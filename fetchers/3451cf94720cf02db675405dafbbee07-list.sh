@@ -9,9 +9,9 @@ mapfile -t JSON
 <<< "$URL" awk -F/ '{gsub("www.", ""); print $3}' | read -r DOMAIN
 
 if [[ "$URL" =~ tags=([^&]+) ]]; then
-    URL="https://api.${DOMAIN}/videos?tags=${BASH_REMATCH[1]}&sort=date"
+    URL="https://apiq.${DOMAIN}/videos?tags=${BASH_REMATCH[1]}&sort=date"
 elif [[ "$URL" =~ /videos ]]; then
-    URL="https://api.${DOMAIN}/videos?rating=all&sort=date&limit=32"
+    URL="https://apiq.${DOMAIN}/videos?rating=all&sort=date&limit=32"
 fi
 
 echo "3451cf94720cf02db675405dafbbee07-list: List $URL" >&2
