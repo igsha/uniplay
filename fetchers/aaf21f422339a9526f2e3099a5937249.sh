@@ -4,46 +4,28 @@ shopt -s lastpipe
 
 which jq http htmlq > /dev/null
 
-mapfile -t JSON
-read -r URL < <(jq -r .item <<< "${JSON[@]}")
-if [[ "$URL" =~ ([^:]+)://(.+) && "${BASH_REMATCH[1]:0:4}" != http ]]; then
-    URL="https://${BASH_REMATCH[1]}/${BASH_REMATCH[2]}"
-    echo "aaf21f422339a9526f2e3099a5937249: Convert to $URL" >&2
-fi
-
-read -r REGISTER < <(mktemp -t uniplayer.aaf2.XXX)
-trap "rm \"$REGISTER\"" INT EXIT
-http --follow --timeout 5 GET "$URL" > "$REGISTER"
+jq -r '.item, (.item | split("/")[:3] | join("/"))' \
+    | { read -r URL; read -r DOMAIN; }
 
 while [[ "$URL" =~ /models/ ]]; do
-    < "$REGISTER" \
-        htmlq '.list-videos a.thumb_title' \
-        | rg 'href="([^"]+)".*title="([^"]+)"' -or $'$1\t$2' \
-        | readarray -t LIST
-
-    if < "$REGISTER" \
-        htmlq '#list_videos_common_videos_list_pagination li.next > a' -a href \
-        | read -r NEXTURL; then
-        awk -F/ '{printf "%s//%s\n", $1, $3}' <<< "$URL" \
-            | read -r DOMAIN
-        LIST+=("$DOMAIN$NEXTURL"$'\t'"next")
-    fi
-
-    printf "%s\n" "${LIST[@]}" \
-        | fzf -d $'\t' --with-nth=2 --accept-nth=1 \
-        | read -r URL
-
-    http --follow --timeout 5 GET "$URL" > "$REGISTER"
+    echo "aaf21f422339a9526f2e3099a5937249: List $URL" >&2
+    http --follow --timeout 5 GET "$URL" \
+        | htmlq '.list-videos a.thumb_title, #list_videos_common_videos_list_pagination li.next > a' \
+        | sed -e '1i<div>' -e '$a</div>' \
+        | xq --arg dom "$DOMAIN" '.div.a | . as $arr | {
+            items: map(select(.["@class"] == "thumb_title") | {item: .["@href"], name: .["@title"]})
+                + map(select(.["@class"] == "link") | {item: $dom + .["@href"], name: "###next###"}),
+            title: "aaf21f422339a9526f2e3099a5937249"}' \
+        | "$UNIPLAY" -f marksel \
+        | jq -r '.item, .title' \
+        | { read -r URL; read -r TITLE; }
 done
 
-mapfile -t URLS < <(htmlq 'video > source' -a src < "$REGISTER")
-[[ "${#URLS[@]}" -ne 0 ]] || { echo "ERROR: Empty urls"; exit 1; }
+echo "aaf21f422339a9526f2e3099a5937249: Extract $URL" >&2
+http --follow GET "$URL" \
+    | htmlq 'video > source' \
+    | tee >(xargs printf "aaf21f422339a9526f2e3099a5937249: Available %s\n" >&2) \
+    | mapfile -t URLS
 
-read -r TITLE < <(htmlq 'head > title' -t < "$REGISTER")
-
-for URL in "${URLS[@]}"; do
-    echo "aaf21f422339a9526f2e3099a5937249: Extract $URL" >&2
-done
-
-export URL="${URLS[0]}" TITLE
-<<< "${JSON[@]}" jq '.item=env.URL | .title=env.TITLE' | "$UNIPLAY" -f mpv
+jo item="${URLS[0]}" title="$TITLE" \
+    | "$UNIPLAY" -f mpv

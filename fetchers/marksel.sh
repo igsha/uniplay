@@ -23,6 +23,10 @@ fi
 
 DB="$XDG_CACHE_HOME/uniplay.db"
 
+# Escape single quote
+<<< "$TBLNAME" sed "s;';'';g" \
+    | read -r TBLNAME
+
 echo "marksel: Find info [$TBLNAME] from db $DB" >&2
 sqlite3 "$DB" "CREATE TABLE IF NOT EXISTS '$TBLNAME' (hash CHAR(32) PRIMARY KEY);" >&2
 # Move `select ... where` into the loop below
