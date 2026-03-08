@@ -35,11 +35,15 @@ sqlite3 "$DB" "SELECT hash FROM '$TBLNAME';" \
 
 {
     <<< "${JSON[@]}" jq 'del(.items)'
-
     <<< "${JSON[@]}" jq --raw-output0 '.items[]' \
         | while IFS= read -r -d $'\0' JSN; do
             MARK="(new)"
-            <<< "${JSN}" jq -j .item | md5sum | cut -c -32 | read -r ITEMHASH
+            if ! <<< "${JSN}" jq -r '.hash // empty' | read -r ITEMHASH; then
+                <<< "${JSN}" jq -j .item \
+                    | md5sum \
+                    | cut -c -32 \
+                    | read -r ITEMHASH
+            fi
             if [[ " ${HASHES[*]} " =~ " $ITEMHASH " ]]; then
                 MARK="(seen)"
             fi
@@ -64,7 +68,7 @@ else
     <<< "${JSON[@]}" jq -r .hash \
         | read -r HASH
 
-    echo "marksel: Update $HASH in [$TBLNAME] ($DB)" >&2
+    echo "marksel: Update [$HASH] in [$TBLNAME] ($DB)" >&2
     sqlite3 "$DB" "INSERT OR IGNORE INTO '$TBLNAME' (hash) VALUES ('$HASH');" >&2
 
     <<< "${JSON[@]}" jq 'del(.hash)'

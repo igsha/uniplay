@@ -40,9 +40,15 @@ fi
 
 if [[ "$URL" =~ dubbing=([^?&]+) ]]; then
     DUB="${BASH_REMATCH[1]}"
+    echo -n "$URL" \
+        | md5sum \
+        | cut -c -32 \
+        | read -r HASH
+
     echo "obrut: List series for [$DUB]" >&2
-    <<< "${JSON[@]}" jq --arg dub "${BASH_REMATCH[1]}" 'map(select(.title == $dub))
-            | {items: map({item: .file, name: ("\($dub) \(.season)-\(.episode)" as $sup | .t1 | select(. != "") // $sup)}), title: "obrut"}' \
+    <<< "${JSON[@]}" jq --arg dub "${BASH_REMATCH[1]}" --arg hash "$HASH" 'map(select(.title == $dub))
+            | {items: map("\(.season)-\(.episode)" as $se | {item: .file, name: ("\($dub) \($se)" as $sup | .t1 | select(. != "") // $sup), hash: $hash + $se}),
+                title: "obrut"}' \
         | "$UNIPLAY" -f marksel \
         | jq '.item |= (. | split(",") | map(
                 match("\\[(\\w+)\\]([^ ]+)")
@@ -50,7 +56,7 @@ if [[ "$URL" =~ dubbing=([^?&]+) ]]; then
             ) | sort_by(.key | (match("(\\d+)p") | .captures[0].string | tonumber) // 0)
             | reverse)' \
         | tee >(jq -r '.item[] | "obrut: [\(.key)] \(.value)"' >&2) \
-        | jq --arg dom "$DOMAIN" --arg ua "$UA" --arg url "$URL" '.item |= .[0].value | .referer=$dom | .useragent=$ua | .replacepath=$url' \
+        | jq --arg dom "$DOMAIN" --arg ua "$UA" --arg url "$URL" '.item |= .[0].value | .referer=$dom | .useragent=$ua | .replacepath="\($url)&seria=\(.seria)"' \
         | exec "$UNIPLAY" -f mpv
 else
     echo "obrut: List dubbers" >&2
