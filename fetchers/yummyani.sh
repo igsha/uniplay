@@ -2,7 +2,7 @@
 set -e
 shopt -s lastpipe
 
-which jq http awk grep rg > /dev/null
+which jq http awk grep rg brotli > /dev/null
 
 mapfile -t JSON
 <<< "${JSON[@]}" jq -r .item \
@@ -20,6 +20,7 @@ if [[ "$URL" =~ anime_id=([0-9]+) ]]; then
 
     echo "yummyani: Extract CVH asset $URL" >&2
     http GET "$URL" \
+        | brotli -d \
         | rg --multiline-dotall -UP '"data-aggregator":\s*"([^"]+)".*"data-publisher-id":\s*(\d+)' -or $'$1\n$2' \
         | { read -r AGGR; read -r PUB; }
 
