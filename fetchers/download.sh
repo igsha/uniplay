@@ -16,7 +16,7 @@ if <<< "${JSON[@]}" jq -r '.referer // empty' | read -r REFERER; then
     echo "download: Use referer $REFERER" >&2
 fi
 if ! <<< "${JSON[@]}" jq -r '.parallel // empty' | read -r PARLEVEL; then
-    PARLEVEL=1
+    PARLEVEL=0
 fi
 if ! <<< "${JSON[@]}" jq -r '.timeout // empty' | read -r HTTPTIMEOUT; then
     HTTPTIMEOUT=30
