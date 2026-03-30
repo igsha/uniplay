@@ -33,14 +33,14 @@ http GET "$FILEURL" "x-version:$XVERSION" \
     | read -r URL
 
 echo "3451cf94720cf02db675405dafbbee07: Trying $URL" >&2
-if ! http -hq --check-status --timeout=2.4 GET "$URL" 2>/dev/null; then
+if ! http -hq --check-status --timeout=4.4 GET "$URL" 2>/dev/null; then
     SERVERS=(pela silverwolf mikoto)
     for ((i=0; i<${#SERVERS[@]}; ++i)); do
         <<< "$URL" awk -F/ 'gsub($3,"'${SERVERS[$i]}.${DOMAIN}'",$0)' \
             | read -r URL
 
         echo "3451cf94720cf02db675405dafbbee07: Trying $URL" >&2
-        if http -hq --check-status --timeout=2.1 GET "$URL" 2>/dev/null; then
+        if http -hq --check-status --timeout=4.1 GET "$URL" 2>/dev/null; then
             break
         fi
     done

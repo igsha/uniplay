@@ -1,7 +1,7 @@
 { stdenv, lib, makeWrapper,
   which, gnugrep, gnused, gawk, coreutils, findutils, iconv,
   jq, jo, ripgrep, httpie, htmlq, python3Packages, parallel, fzf,
-  sqlite, imagemagick, pdfcpu, pandoc, mpv, xdg-utils,
+  sqlite, imagemagick, pdfcpu, pandoc, mpv, xdg-utils, gost,
 }:
 
 let
@@ -27,6 +27,7 @@ let
     pandoc
     mpv
     xdg-utils
+    gost
   ];
 in stdenv.mkDerivation {
   pname = "uniplay";

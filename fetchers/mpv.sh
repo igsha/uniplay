@@ -64,8 +64,30 @@ if <<< "${JSON[@]}" jq -r '.replacepath // empty' | read -r REPLACEPATH; then
     ARGS[0]="$REPLACEPATH"
 fi
 
-if [[ "${#TEMPS[@]}" -gt 0 ]]; then
-    trap "rm ${TEMPS[@]}" INT EXIT
+if <<< "${JSON[@]}" jq -r '.proxy // empty' | read -r PROXY; then
+    if [[ "${PROXY:0:5}" == socks ]]; then
+        which gost pkill >/dev/null
+        USE_GOST=1
+        coproc GOST { gost -L http://:8080 -F "$PROXY" >&2; }
+        echo "mpv: Replace $PROXY by gost pid=$GOST_PID" >&2
+        PROXY="http://localhost:8080"
+    fi
+
+    echo "mpv: Use proxy=$PROXY" >&2
+    ARGS+=("--http-proxy=$PROXY" "--demuxer-max-bytes=512MiB" "--demuxer-readahead-secs=20")
 fi
+
+cleanup() {
+    if [[ "${#TEMPS[@]}" -gt 0 ]]; then
+        echo "mpv: cleanup ${TEMPS[@]}" >&2
+        rm "${TEMPS[@]}"
+    fi
+    if [[ "$USE_GOST" -eq 1 && -n "$GOST_PID" ]]; then
+        echo "mpv: cleanup gost $GOST_PID" >&2
+        pkill -P "${GOST_PID}"
+    fi
+}
+
+trap cleanup EXIT
 
 mpv "${ARGS[@]}"
