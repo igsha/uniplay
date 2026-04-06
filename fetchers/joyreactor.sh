@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
 set -e
+shopt -s lastpipe
 
 which jq grep http > /dev/null
+DOMAIN="joyreactor.com"
 
-mapfile -t JSON
-read -r URL < <(jq -r .item <<< "${JSON[@]}")
+jq -r '.item, (.limit // 10)' \
+    | { read -r URL; read -r LIMIT; }
 
 [[ "$URL" =~ [^/]+://([^/]+/)?tag/([^/]+)/?([0-9]+)?/? ]]
 TAGNAME="${BASH_REMATCH[2]}"
 PAGE="${BASH_REMATCH[3]}"
 URLS=()
-while ((${#URLS[@]} < 12)); do
+while ((${#URLS[@]} < LIMIT)); do
     if [[ -n "$PAGE" ]]; then
         PAGEPATTERN="(page: $PAGE)"
     fi
@@ -46,26 +48,29 @@ while ((${#URLS[@]} < 12)); do
 }
 EOF
 
-    mapfile -t JSON < <(printf "%s" '{"query": "' "${REQUEST[@]}" '"}' | http POST https://api.joyreactor.cc/graphql)
+    printf "%s" '{"query": "' "${REQUEST[@]}" '"}' \
+        | http POST "https://api.${DOMAIN}/graphql" \
+        | mapfile JSON
 
-    if [[ -n "$PAGE" ]]; then
-        ((PAGE--))
-    else
-        read -r PAGE < <(jq -r '.data.tag.postPager.count' <<< "${JSON[@]}")
-        echo "joyreactor: The last page $((PAGE / 10)) [$PAGE]" >&2
-        PAGE=$((PAGE / 10 - 1))
+    if [[ -z "$PAGE" ]]; then
+        <<< "${JSON[@]}" jq -r '.data.tag.postPager.count' \
+            | read -r NUM
+        PAGE=$((NUM / 10))
+        echo "joyreactor: The last page $PAGE [$NUM]" >&2
     fi
 
-    while read -r ID IMGTYPE PREFIX; do
-        if [[ "$IMGTYPE" == jpeg || "$IMGTYPE" == png ]]; then
-            URLS+=("https://img10.joyreactor.cc/pics/post/${PREFIX}-${ID}.${IMGTYPE}")
-        fi
-    done < <(jq -r '.data.tag.postPager.posts[]
-                    | select(.attributes[0].type == "PICTURE") |
-                        [
-                            (.attributes[0] | (.id | @base64d | split(":")[-1]),(.image.type | ascii_downcase)),
-                            (.tags[:3] | map(.name | gsub(" |/|#|\\?"; "-")) | join("-"))
-                        ] | @tsv' <<< "${JSON[@]}")
+    ((PAGE--))
+
+    <<< "${JSON[@]}" jq -r '.data.tag.postPager.posts[] | select(.attributes[0].type == "PICTURE")
+                | (.tags[:3] | map(.name | gsub(" |/|#|\\?"; "-")) | join("-")) as $prefix
+                | .attributes[0] | (.id | @base64d | split(":")[-1]) as $id | (.image.type | ascii_downcase) as $imgtype
+                | "\($prefix)-\($id).\($imgtype)"' \
+        | readarray -t -O "${#URLS[@]}" URLS
 done
 
-jo result=urls items=$(jo -a "${URLS[@]}")
+echo "joyreactor: Read ${#URLS[@]} names ($LIMIT)" >&2
+jo -a "${URLS[@]}" \
+    | jq --arg base "$DOMAIN" '{
+        items: map({item: "https://img10.\($base)/pics/post/\(.)", name: ., fallback: "https://img2.\($base)/pics/post/\(.)"}),
+        title: "joyreactor"
+    }'
