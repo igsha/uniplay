@@ -13,4 +13,5 @@ jq -r .item \
     | read -r URL
 
 echo "ulst: Extract $URL" >&2
-jo result=url item="$URL"
+jo result=url item="$URL" \
+    | "$UNIPLAY"

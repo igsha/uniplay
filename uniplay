@@ -8,33 +8,44 @@ realpath "$0" | read -r UNIPLAY
 dirname "$UNIPLAY" | read -r SCRIPT_DIR
 export UNIPLAY
 
+NAME=
 if [[ "${1-default}" == -f ]]; then
     NAME="$2"
-    URL="${3-}"
-elif [[ "$#" -eq 0 || "$1" =~ [^:]+:// ]]; then
-    if [[ "$#" -eq 0 ]]; then
-        jq -r .item | read -r URL
-    else
-        URL="$1"
-    fi
-
-    [[ "$URL" =~ ([^:]+)://([^/]+) ]]
-    if [[ "${BASH_REMATCH[1]:0:4}" == http ]]; then
-        DOMAIN="${BASH_REMATCH[2]}"
-    else
-        DOMAIN="${BASH_REMATCH[1]}"
-    fi
-
-    awk -F. '{print $(NF-1)}' <<< "$DOMAIN" | read -r NAME
-elif [[ "$1" =~ \.ulst$ || "$1" =~ \.m3u8$ ]]; then
-    "$UNIPLAY" -f ulst "$1" | "$UNIPLAY"
-    exit 0
-else
-    echo "uniplay: Unexpected arguments or input" >&2
-    exit 2
+    shift 2
 fi
 
-md5sum <<< "$NAME" | cut -c -32 | read -r HASH
+if [[ "$#" -eq 0 ]]; then
+    mapfile JSON
+else
+    jo item="$1" \
+        | mapfile JSON
+fi
+
+if [[ -z "$NAME" ]]; then
+    <<< "${JSON[@]}" jq -r .item \
+        | read -r URL
+
+    if [[ -r "$URL" ]]; then
+        NAME="${URL##*.}"
+    elif [[ "$URL" =~ ([^:]+)://([^/]+) ]]; then
+        if [[ "${BASH_REMATCH[1]:0:4}" == http ]]; then
+            DOMAIN="${BASH_REMATCH[2]}"
+        else
+            DOMAIN="${BASH_REMATCH[1]}"
+        fi
+
+        NAME="${DOMAIN%.*}"
+        NAME="${NAME##*.}"
+    else
+        echo "uniplay: Unexpected arguments or input" >&2
+        exit 1
+    fi
+fi
+
+<<< "$NAME" md5sum \
+    | cut -c -32 \
+    | read -r HASH
+
 POSSIBLE_FETCHERS=(\
     "$XDG_CONFIG_HOME/uniplay/fetchers/$NAME.sh" \
     "$XDG_CONFIG_HOME/uniplay/fetchers/$HASH.sh" \
@@ -53,16 +64,13 @@ for CHECK_FETCHER in "${POSSIBLE_FETCHERS[@]}"; do
 done
 if [[ ! -e "$FETCHER" ]]; then
     echo "uniplay: Cannot find $NAME" >&2
-    exit 3
+    exit 2
 fi
 
-if [[ -n "$URL" ]]; then
-    jo result=url item="$URL" uniplay="$UNIPLAY" | "$FETCHER"
-else
-    mapfile -t JSON
-    <<< "${JSON[@]}" "$FETCHER"
-    if <<< "${JSON[@]}" jq -r '.delete // empty' | read -r TMPFILE; then
-        echo "uniplay: Delete temporary $TMPFILE" >&2
-        rm -r "$TMPFILE"
-    fi
+<<< "${JSON[@]}" jq --arg uni "$UNIPLAY" '.uniplay=$uni' \
+    | "$FETCHER"
+
+if <<< "${JSON[@]}" jq -r '.delete // empty' | read -r TMPFILE; then
+    echo "uniplay: Delete temporary $TMPFILE" >&2
+    rm -r "$TMPFILE"
 fi
