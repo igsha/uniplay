@@ -5,21 +5,8 @@ shopt -s lastpipe
 which jq sqlite3 md5sum cut > /dev/null
 
 mapfile JSON
-if <<< "${JSON[@]}" jq -r '.call // empty' | read -r CALL && [[ "$CALL" == marksel ]]; then
-    # we were called again
-    <<< "${JSON[@]}" jq -r .args.call \
-        | read -r CALL
-
-    echo "marksel: Callback [$CALL]" >&2
-    <<< "${JSON[@]}" jq --arg call "$CALL" '.args=.args.args | .call=$call' \
-        | "$UNIPLAY" -f "$CALL" \
-        | mapfile JSON
-
-    NOSELECTOR=1
-fi
-
-<<< "${JSON[@]}" jq -r '.title' \
-    | read -r TBLNAME
+<<< "${JSON[@]}" jq -r '.title, (.hashkey // "title")' \
+    | { read -r TBLNAME; read -r HASHKEY; }
 
 DB="$XDG_CACHE_HOME/uniplay.db"
 
@@ -34,12 +21,12 @@ sqlite3 "$DB" "SELECT hash FROM '$TBLNAME';" \
     | mapfile -t HASHES
 
 {
-    <<< "${JSON[@]}" jq 'del(.items)'
-    <<< "${JSON[@]}" jq --raw-output0 '.items[]' \
+    <<< "${JSON[@]}" jq 'del(.list)'
+    <<< "${JSON[@]}" jq --raw-output0 '.list[]' \
         | while IFS= read -r -d $'\0' JSN; do
             MARK="(new)"
             if ! <<< "${JSN}" jq -r '.hash // empty' | read -r ITEMHASH; then
-                <<< "${JSN}" jq -j .item \
+                <<< "${JSN}" jq -j ".$HASHKEY" \
                     | md5sum \
                     | cut -c -32 \
                     | read -r ITEMHASH
@@ -50,26 +37,16 @@ sqlite3 "$DB" "SELECT hash FROM '$TBLNAME';" \
 
             <<< "${JSN}" jq --arg mark "$MARK" --arg hash "$ITEMHASH" '.mark=$mark | .hash=$hash'
         done  \
-            | jq -s '{items: .}'
-
-    if [[ -n "$CALL" ]]; then
-        <<< "${JSON[@]}" jq '{call: "marksel", args: {call, args}}'
-    fi
+            | jq -s '{list: .}'
 } \
     | jq -s add \
+    | "$UNIPLAY" selector \
     | mapfile JSON
 
-if [[ "$NOSELECTOR" -eq 1 ]]; then
-    printf "%s" "${JSON[@]}"
-else
-    <<< "${JSON[@]}" "$UNIPLAY" -f selector \
-        | mapfile JSON
+<<< "${JSON[@]}" jq -r .hash \
+    | read -r HASH
 
-    <<< "${JSON[@]}" jq -r .hash \
-        | read -r HASH
+echo "marksel: Update [$HASH] in [$TBLNAME] ($DB)" >&2
+sqlite3 "$DB" "INSERT OR IGNORE INTO '$TBLNAME' (hash) VALUES ('$HASH');" >&2
 
-    echo "marksel: Update [$HASH] in [$TBLNAME] ($DB)" >&2
-    sqlite3 "$DB" "INSERT OR IGNORE INTO '$TBLNAME' (hash) VALUES ('$HASH');" >&2
-
-    <<< "${JSON[@]}" jq 'del(.hash)'
-fi
+printf "%s" "${JSON[@]}"

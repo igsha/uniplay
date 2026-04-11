@@ -4,7 +4,7 @@ shopt -s lastpipe
 
 which jq pandoc > /dev/null
 
-jq -r .item \
+jq -r .file \
     | read -r FILE
 
 echo "view-html: Convert HTML [$FILE] to plain text" >&2

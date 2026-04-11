@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+set -euo pipefail
+shopt -s lastpipe
+
+which awk md5sum jo jq > /dev/null
+
+realpath "$0" | read -r UNIPLAY
+dirname "$UNIPLAY" | read -r SCRIPT_DIR
+export UNIPLAY
+
+if [[ "$#" -eq 0 ]]; then
+    echo "uniplay: First argument should be a fetcher" >&2
+    exit 1
+fi
+
+NAME="$1"
+shift 1
+
+if [[ "$#" -eq 0 ]]; then
+    mapfile JSON
+else
+    if [[ -r "$1" ]]; then
+        jo file="$1"
+    else
+        jo url="$1"
+    fi | mapfile JSON
+fi
+
+<<< "$NAME" md5sum \
+    | cut -c -32 \
+    | read -r HASH
+
+POSSIBLE_FETCHERS=(\
+    "$XDG_CONFIG_HOME/uniplay/fetchers/$NAME.sh" \
+    "$XDG_CONFIG_HOME/uniplay/fetchers/$HASH.sh" \
+    "$SCRIPT_DIR/../share/uniplay/fetchers/$NAME.sh" \
+    "$SCRIPT_DIR/../share/uniplay/fetchers/$HASH.sh" \
+    "$SCRIPT_DIR/fetchers/$NAME.sh" \
+    "$SCRIPT_DIR/fetchers/$HASH.sh" \
+)
+
+FETCHER=
+for CHECK_FETCHER in "${POSSIBLE_FETCHERS[@]}"; do
+    if [[ -e "$CHECK_FETCHER" ]]; then
+        FETCHER="$CHECK_FETCHER"
+        break
+    fi
+done
+if [[ ! -e "$FETCHER" ]]; then
+    echo "uniplay: Cannot find $NAME" >&2
+    exit 2
+fi
+
+<<< "${JSON[@]}" jq --arg uni "$UNIPLAY" '.uniplay=$uni' \
+    | "$FETCHER"
+
+if <<< "${JSON[@]}" jq -r '.delete // empty' | read -r TMPFILE; then
+    echo "uniplay: Delete temporary $TMPFILE" >&2
+    rm -r "$TMPFILE"
+fi

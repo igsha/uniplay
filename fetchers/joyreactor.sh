@@ -3,12 +3,12 @@ set -e
 shopt -s lastpipe
 
 which jq grep http > /dev/null
-DOMAIN="joyreactor.com"
 
-jq -r '.item, (.limit // 10)' \
+jq -r '.url, (.limit // 10)' \
     | { read -r URL; read -r LIMIT; }
 
-[[ "$URL" =~ [^/]+://([^/]+/)?tag/([^/]+)/?([0-9]+)?/? ]]
+[[ "$URL" =~ [^/]+://([^/]+)/tag/([^/]+)/?([0-9]+)?/? ]]
+DOMAIN="${BASH_REMATCH[1]}"
 TAGNAME="${BASH_REMATCH[2]}"
 PAGE="${BASH_REMATCH[3]}"
 URLS=()
@@ -71,6 +71,9 @@ done
 echo "joyreactor: Read ${#URLS[@]} names ($LIMIT)" >&2
 jo -a "${URLS[@]}" \
     | jq --arg base "$DOMAIN" '{
-        items: map({item: "https://img10.\($base)/pics/post/\(.)", name: ., fallback: "https://img2.\($base)/pics/post/\(.)"}),
-        title: "joyreactor"
+        list: map({url: "https://img10.\($base)/pics/post/\(.)", title: ., fallback: "https://img2.\($base)/pics/post/\(.)"}),
+        title: "joyreactor",
+        hasheky: "url",
+        type: "images",
+        type: "selectable"
     }'

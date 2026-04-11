@@ -2,75 +2,8 @@
 set -euo pipefail
 shopt -s lastpipe
 
-which awk md5sum jo jq > /dev/null
+realpath "$0" \
+    | xargs dirname \
+    | read -r SCRIPT_DIR
 
-realpath "$0" | read -r UNIPLAY
-dirname "$UNIPLAY" | read -r SCRIPT_DIR
-export UNIPLAY
-
-NAME=
-if [[ "${1-default}" == -f ]]; then
-    NAME="$2"
-    shift 2
-fi
-
-if [[ "$#" -eq 0 ]]; then
-    mapfile JSON
-else
-    jo item="$1" \
-        | mapfile JSON
-fi
-
-if [[ -z "$NAME" ]]; then
-    <<< "${JSON[@]}" jq -r .item \
-        | read -r URL
-
-    if [[ -r "$URL" ]]; then
-        NAME="${URL##*.}"
-    elif [[ "$URL" =~ ([^:]+)://([^/]+) ]]; then
-        SCHEME="${BASH_REMATCH[1]}"
-        DOMAIN="${BASH_REMATCH[2]}"
-        if [[ "${SCHEME:0:4}" != http ]]; then
-            DOMAIN="$SCHEME"
-        fi
-
-        NAME="${DOMAIN%.*}"
-        NAME="${NAME##*.}"
-    else
-        echo "uniplay: Unexpected arguments or input" >&2
-        exit 1
-    fi
-fi
-
-<<< "$NAME" md5sum \
-    | cut -c -32 \
-    | read -r HASH
-
-POSSIBLE_FETCHERS=(\
-    "$XDG_CONFIG_HOME/uniplay/fetchers/$NAME.sh" \
-    "$XDG_CONFIG_HOME/uniplay/fetchers/$HASH.sh" \
-    "$SCRIPT_DIR/../share/uniplay/fetchers/$NAME.sh" \
-    "$SCRIPT_DIR/../share/uniplay/fetchers/$HASH.sh" \
-    "$SCRIPT_DIR/fetchers/$NAME.sh" \
-    "$SCRIPT_DIR/fetchers/$HASH.sh" \
-)
-
-FETCHER=
-for CHECK_FETCHER in "${POSSIBLE_FETCHERS[@]}"; do
-    if [[ -e "$CHECK_FETCHER" ]]; then
-        FETCHER="$CHECK_FETCHER"
-        break
-    fi
-done
-if [[ ! -e "$FETCHER" ]]; then
-    echo "uniplay: Cannot find $NAME" >&2
-    exit 2
-fi
-
-<<< "${JSON[@]}" jq --arg uni "$UNIPLAY" '.uniplay=$uni' \
-    | "$FETCHER"
-
-if <<< "${JSON[@]}" jq -r '.delete // empty' | read -r TMPFILE; then
-    echo "uniplay: Delete temporary $TMPFILE" >&2
-    rm -r "$TMPFILE"
-fi
+"$SCRIPT_DIR/s-uniplay" pipeline "$@"

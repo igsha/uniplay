@@ -7,7 +7,7 @@ which jq http > /dev/null
 
 mapfile JSON
 ARGS=()
-<<< "${JSON[@]}" jq -r .item \
+<<< "${JSON[@]}" jq -r .url \
     | read -r ARGS[0]
 
 if <<< "${JSON[@]}" jq -er '.referer // empty' | read -r REFERER; then
@@ -21,4 +21,4 @@ if <<< "${JSON[@]}" jq -er '.useragent // empty' | read -r UA; then
 fi
 
 echo "http: Download ${ARGS[0]}" >&2
-http GET "${ARGS[@]}"
+http --follow GET "${ARGS[@]}"

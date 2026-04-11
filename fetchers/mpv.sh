@@ -13,21 +13,24 @@ shopt -s lastpipe
 which jq mpv http > /dev/null
 
 mapfile -t JSON
-<<< "${JSON[@]}" jq -r '.item // .items[]' \
+<<< "${JSON[@]}" jq -r '.url // .urls[]' \
     | readarray -t ARGS
 
 [[ "${#ARGS[@]}" -gt 0 ]]
 echo "mpv: Extract ${ARGS[@]}" >&2
 
 if <<< "${JSON[@]}" jq -r '.referer // empty' | read -r REFERER; then
+    echo "mpv: Use referer=$REFERER" >&2
     ARGS+=("--http-header-fields=Referer:$REFERER")
 fi
 
 if <<< "${JSON[@]}" jq -r '.title // empty' | read -r TITLE; then
+    echo "mpv: Use title=$TITLE" >&2
     ARGS+=("--title=$TITLE")
 fi
 
 if <<< "${JSON[@]}" jq -r '.useragent // empty' | read -r UA; then
+    echo "mpv: Use user-agent=$UA" >&2
     ARGS+=("--user-agent=$UA")
 fi
 

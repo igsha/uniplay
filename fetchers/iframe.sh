@@ -5,7 +5,7 @@ shopt -s lastpipe
 which grep http jo jq > /dev/null
 
 mapfile -t JSON
-<<< "${JSON[@]}" jq -r '.item,(.title // "")' \
+<<< "${JSON[@]}" jq -r '.url,(.title // "")' \
     | { read -r URL; read -r TITLE; }
 
 if <<< "${JSON[@]}" jq -r '.referer // empty' | read -r REFERER; then
@@ -20,8 +20,8 @@ http --follow --timeout 10 GET "$URL" $REFERER \
     | read -r URL
 
 [[ "$URL" =~ [^/]+://[^/]+/ ]]
-export DOMAIN="${BASH_REMATCH[0]}"
+DOMAIN="${BASH_REMATCH[0]}"
 
 echo "iframe: Extract $URL" >&2
 
-jo result=url item="$URL" referer="$DOMAIN" -n title="$TITLE"
+jo url="$URL" referer="$DOMAIN" -n title="$TITLE"

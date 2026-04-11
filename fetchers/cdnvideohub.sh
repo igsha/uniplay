@@ -10,7 +10,7 @@ shopt -s lastpipe
 which jq http tee > /dev/null
 
 mapfile JSON
-<<< "${JSON[@]}" jq -r .item \
+<<< "${JSON[@]}" jq -r .url \
     | read -r URL
 
 if [[ "$URL" =~ /video/[0-9]+ ]]; then
@@ -24,8 +24,7 @@ if [[ "$URL" =~ /video/[0-9]+ ]]; then
                 | ["mpeg4kUrl", "mpeg2kUrl", "mpegFullHdUrl", "mpegHighUrl", "hlsUrl", "dashUrl"]
                 | index($key) // 77)' \
         | tee >(jq -r '.[] | "cdnvideohub: [\(.key)] \(.value)"' >&2) \
-        | jq --arg title "$TITLE" '{item: .[0].value, title: $title}' \
-        | exec "$UNIPLAY" -f mpv
+        | jq --arg title "$TITLE" '{url: .[0].value, title: $title, type: "video"}'
 else
     echo "cdnvideohub: Extract $URL" >&2
     http GET "$URL" \
@@ -37,23 +36,22 @@ else
             | read -r TITLE
 
         echo "cdnvideohub: List episodes [$VOICE]" >&2
-        <<< "${JSON[@]}" jq --arg voice "$VOICE" \
-                '.items | map(select(.voiceStudio == $voice)
-                     | {item: "https://plapi.cdnvideohub.com/api/v1/player/sv/video/\(.vkId)",
-                        name: "\(.season)-\(.episode)"}) | reverse
-                     | {items: ., title: "cdnvideohub"}' \
-            | "$UNIPLAY" -f marksel \
-            | jq --arg title "$TITLE" '{item, title: "\($title) - \(.title)"}' \
-            | exec "$UNIPLAY" -f cdnvideohub
+        <<< "${JSON[@]}" jq --arg voice "$VOICE" --arg title "$TITLE" \
+                '.items | map(select(.voiceStudio == $voice) | {
+                    url: "https://plapi.cdnvideohub.com/api/v1/player/sv/video/\(.vkId)",
+                    title: "\($title) \(.season)-\(.episode)"
+                }) | reverse | {
+                    list: .,
+                    title: "cdnvideohub",
+                    hashkey: "url",
+                    type: "selectable"}'
     else
         echo "cdnvideohub: List voices (voice name, series count)" >&2
         <<< "${JSON[@]}" jq --arg url "$URL" \
                 '.items | group_by(.voiceStudio) | map(.[0].voiceStudio as $name | {
-                    name: $name,
+                    title: $name,
                     count: length,
-                    item: "\($url)&dubbing_code=\($name)"})
-                | {items: ., title: "cdnvideohub"}' \
-            | "$UNIPLAY" -f selector \
-            | exec "$UNIPLAY" -f cdnvideohub
+                    url: "\($url)&dubbing_code=\($name)"})
+                | {list: ., title: "cdnvideohub", hashkey: "url", type: "selectable"}'
     fi
 fi

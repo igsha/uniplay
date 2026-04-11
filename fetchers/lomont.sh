@@ -4,7 +4,7 @@ shopt -s lastpipe
 
 which jq http htmlq > /dev/null
 
-jq -r .item \
+jq -r .url \
     | read -r URL
 
 echo "lomont: Download $URL" >&2
@@ -16,10 +16,7 @@ http GET "$URL" \
 <<< "${JSON[@]}" jq 'to_entries | map(.value | to_entries | map(.value) | flatten) | flatten | group_by(.voice_id)' \
     | mapfile JSON
 
-<<< "${JSON[@]}" jq '{items: map(.[-1] | {item: .voice_id, name: "\(.voice_name) \(.season)-\(.episode)"}), title: "lomont"}' \
-    | "$UNIPLAY" -f selector \
-    | jq -r .item \
-    | read -r VOICE_ID
+<<< "${JSON[@]}" jq '{list: map(.[-1] | {url: .voice_id, title: "\(.voice_name) \(.season)-\(.episode)"}), title: "lomont", type: "selectable"}'
 
 echo "lomont: Selected voice id $VOICE_ID" >&2
 <<< "${JSON[@]}" jq --arg vid "$VOICE_ID" --arg base "https://lomont.site/player/responce.php?video_id=" \

@@ -5,16 +5,16 @@ shopt -s lastpipe
 which jq jo magick pdfcpu tac > /dev/null
 
 mapfile -t JSON
-<<< "${JSON[@]}" jq -r '.items[]' \
-    | mapfile -t URLS
+<<< "${JSON[@]}" jq -r '.list[] | .file' \
+    | mapfile -t FILES
 
-[[ "${#URLS[@]}" -gt 0 ]]
+[[ "${#FILES[@]}" -gt 0 ]]
 
-FILES=()
+FILENAMES=()
 declare -i TW=0 ACCH=0
-magick identify -format $'%w\t%h\t%i\n' "${URLS[@]}" | while IFS=$'\t' read -r W H N; do
+magick identify -format $'%w\t%h\t%i\n' "${FILES[@]}" | while IFS=$'\t' read -r W H N; do
     ACCH+="$H"
-    FILES+=("$N")
+    FILENAMES+=("$N")
     if ((TW < W)); then
         TW=$W
     fi
@@ -24,12 +24,12 @@ done
 TH=$((TW * 6765/4181))
 echo "create-pdf: Crop images to ${TW}x$TH" >&2
 
-mktemp -d -t uniplay.create-pdf.XXX \
+mktemp -d -t uniplay.create-pdf.images.XXX \
     | read -r TDIR
 trap "rm -r \"$TDIR\"" INT EXIT
 
 # memory exhaustive method
-magick \( "${FILES[@]}" -gravity center -append \) +repage -crop "${TW}x$TH" "$TDIR/uniplay.create-pdf.cropped.%04d.jpg"
+magick \( "${FILENAMES[@]}" -gravity center -append \) +repage -crop "${TW}x$TH" "$TDIR/uniplay.create-pdf.cropped.%04d.jpg"
 find "$TDIR" -name 'uniplay.create-pdf.cropped.*.jpg' -print \
     | tac \
     | mapfile -t RESULT
@@ -40,9 +40,16 @@ if ((ACCH % TH != 0)); then
     magick "${RESULT[@]: -1:1}" -gravity north -extent "${TW}x$TH" "${RESULT[@]: -1:1}"
 fi
 
-mktemp -u -t uniplay.create-pdf.XXX.pdf \
-    | read -r PDFFILE
+mktemp -d -t uniplay.create-pdf.XXX \
+    | read -r PDFDIR
+
+if ! <<< "${JSON[@]}" jq -r '.title // empty' | read -r TITLE; then
+    mktemp -u -t uniplay.create-pdf.XXX \
+        | read -r TITLE
+fi
+
+PDFFILE="$PDFDIR/${TITLE//\//-}.pdf"
 
 pdfcpu import -c disable "$PDFFILE" "${RESULT[@]}" >&2
 
-jo result=pdf item="$PDFFILE" delete="$PDFFILE"
+jo file="$PDFFILE" delete="$PDFDIR" type=pdf

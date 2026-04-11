@@ -5,4 +5,4 @@ shopt -s lastpipe
 
 which jq > /dev/null
 
-jq -r '.referer = (.item | split("/")[0:3] | join("/"))'
+jq -r '.referer = (.url | split("/")[0:3] | join("/"))'

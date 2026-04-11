@@ -2,10 +2,10 @@
 set -e
 shopt -s lastpipe
 
-which jq jo tr http parallel > /dev/null
+which jq jo tr http parallel xargs basename > /dev/null
 
 mapfile -t JSON
-<<< "${JSON[@]}" jq -r '.item // .items[]' | readarray -t URLS
+<<< "${JSON[@]}" jq -r '.list[] | .url' | readarray -t URLS
 if [[ "${#URLS[@]}" -eq 0 ]]; then
     echo "download: No urls" >&2
     exit 1
@@ -27,9 +27,22 @@ mktemp -d -t uniplay.download.XXX \
 echo "download: Download ${#URLS[@]} files to $TDIR" >&2
 echo "download: Use timeout=$HTTPTIMEOUT parallel=$PARLEVEL" >&2
 
-parallel -k echo "$TDIR/{/}" '| tr -d "()"' ::: "${URLS[@]}" \
-    | mapfile -t FILES
+<<< "${JSON[@]}" jq -r '(.list[] | .title) // empty' | readarray -t TITLES
+if [[ "${#TITLES[@]}" -eq 0 ]]; then
+    echo "download: No titles, use urls to determine filenames" >&2
+    printf "%s\n" "${URLS[@]}" \
+        | xargs basename -a \
+        | tr -d "()" \
+        | readarray -t TITLES
+fi
+
+FILES=("${TITLES[@]/#/$TDIR/}")
+
 parallel -kqj "${PARLEVEL}" http --follow --timeout "$HTTPTIMEOUT" -o "{2}" GET "{1}" $REFERER ::: "${URLS[@]}" :::+ "${FILES[@]}"
 
-jo -a "${FILES[@]}" \
-    | jo result=files items=:- delete="$TDIR"
+{
+    <<< "${JSON[@]}" jq 'del(.list)'
+    jo -a "${FILES[@]}" \
+        | jq '{list: map({file:.})}'
+    jo delete="$TDIR" type=file
+} | jq -s add

@@ -15,4 +15,5 @@ http GET https://seolik.ru/user-agents-list \
     | sed -n 1p \
     | read -r UA
 
+echo "random-user-agent: $UA" >&2
 <<< "${JSON[@]}" jq --arg ua "$UA" '.useragent = $ua'

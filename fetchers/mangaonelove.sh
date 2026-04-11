@@ -2,21 +2,29 @@
 set -e
 shopt -s lastpipe
 
-which jq http jo sed htmlq grep xq xargs tee > /dev/null
+which jq http htmlq grep xq > /dev/null
 
-jq -r .item \
-    | xargs -I{} -o http --follow GET "{}" \
-    | htmlq 'ul.main.version-chap' --remove-nodes .c-new-tag \
-    | xq '[.. | objects | select(has("@class") and (.["@class"] | startswith("wp-manga-chapter"))) | .a] |
-          {items: map({item: .["@href"], name: .["#text"]}),
-           title: "mangaonelove"}' \
-    | "$UNIPLAY" -f marksel \
-    | jq -r .item \
-    | tee >(awk '{printf "mangaonelove: Extract chapter %s\n", $0}' >&2) \
-    | xargs -I{} -o http GET "{}" \
-    | htmlq '#chapter_preloaded_images' -t \
-    | grep -Po '\[.+\]' \
-    | jo result=urls items=:- parallel=4 \
-    | "$UNIPLAY" -f download \
-    | "$UNIPLAY" -f create-pdf \
-    | "$UNIPLAY" -f pdf
+jq -r '.url // empty' \
+    | read -r URL
+
+http --follow GET "$URL" \
+    | mapfile HTML
+
+if [[ "$URL" =~ /manga/[^/]+/.+ ]]; then
+    echo "mangaonelove: Extract chapter $URL" >&2
+    <<< "${HTML[@]}" htmlq title -t \
+        | read -r TITLE
+
+    <<< "${HTML[@]}" htmlq '#chapter_preloaded_images' -t \
+        | grep -Po '\[.+\]' \
+        | jq --arg title "$TITLE" '{list: map({url: .}), title: $title, pipeline: "manga"}'
+else
+    echo "mangaonelove: List chapters $URL" >&2
+    <<< "${HTML[@]}" htmlq 'ul.main.version-chap' --remove-nodes .c-new-tag \
+        | xq '[.. | objects | select(has("@class") and (.["@class"] | startswith("wp-manga-chapter"))) | .a] | {
+                list: map({url: .["@href"], title: .["#text"]}),
+                hashkey: "url",
+                type: "selectable",
+                title: "mangaonelove"
+            }'
+fi
