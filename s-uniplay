@@ -33,10 +33,13 @@ fi
 POSSIBLE_FETCHERS=(\
     "$XDG_CONFIG_HOME/uniplay/fetchers/$NAME.sh" \
     "$XDG_CONFIG_HOME/uniplay/fetchers/$HASH.sh" \
+    "$XDG_CONFIG_HOME/uniplay/utilities/$NAME.sh" \
     "$SCRIPT_DIR/../share/uniplay/fetchers/$NAME.sh" \
     "$SCRIPT_DIR/../share/uniplay/fetchers/$HASH.sh" \
+    "$SCRIPT_DIR/../share/uniplay/utilities/$NAME.sh" \
     "$SCRIPT_DIR/fetchers/$NAME.sh" \
     "$SCRIPT_DIR/fetchers/$HASH.sh" \
+    "$SCRIPT_DIR/utilities/$NAME.sh" \
 )
 
 FETCHER=

@@ -33,7 +33,8 @@ else
 
         BASEURL="https://api.remanga.org/api/v2/titles/chapters/?branch_id=$BRANCHID&ordering=-index"
         URL="${BASEURL}&page=1"
-    elif [[ "$URL" =~ page= ]]; then
+    elif [[ "$URL" =~ [\?\&]page=[0-9]+ ]]; then
+        BASEURL="${URL/${BASH_REMATCH[0]}/}"
         echo "remanga: Continue list $URL" >&2
     else
         echo "remanga: Wrong url $URL" >&2
