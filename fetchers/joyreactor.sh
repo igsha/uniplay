@@ -73,7 +73,7 @@ jo -a "${URLS[@]}" \
     | jq --arg base "$DOMAIN" '{
         list: map({url: "https://img10.\($base)/pics/post/\(.)", title: ., fallback: "https://img2.\($base)/pics/post/\(.)"}),
         title: "joyreactor",
-        hasheky: "url",
+        hashkey: "url",
         type: "images",
         pipeline: "film"
     }'

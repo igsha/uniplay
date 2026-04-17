@@ -7,7 +7,7 @@ which jq http htmlq xq pandoc jo >/dev/null
 jq -r .url \
     | read -r URL
 
-if [[ "$URL" =~ /news/line/ ]]; then
+if [[ "$URL" =~ /news/(line|top)/ ]]; then
     echo "cnews: Parse $URL" >&2
     http GET "$URL" \
         | htmlq '.article-date-desktop, article' \

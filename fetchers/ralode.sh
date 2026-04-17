@@ -14,15 +14,14 @@ fi
 
 echo "ralode: Extract $URL" >&2
 http --follow --timeout 10 GET "$URL" $REFERER \
-    | mapfile HTML
-
-echo "ralode: Parse html" >&2
-<<< "${HTML[@]}" grep -Po "(?<=RalodePlayer.init\().+(?=\);)" \
+    | grep -Po "(?<=RalodePlayer.init\().+(?=\);)" \
     | sed -e '1i[' -e 'a]' \
-    | jq --arg dom "$DOMAIN" '.[0] | to_entries[] | .value.name as $name | .value.items | to_entries | {
-        list: map({
-            url: "\($dom)/video.php?id=\(.value.id)",
-            title: $name + " - " + .value.sname}),
-        title: "ralode",
-        hashkey: "url",
-        referer: $dom}'
+    | jq --arg dom "$DOMAIN" '.[0] | to_entries | map(
+        .value | .name as $name | .items | map({
+            url: "\($dom)/video.php?id=\(.id)",
+            title: $name + " - " + .sname
+        })) | flatten | {
+            list: .,
+            hashkey: "url",
+            referer: $dom,
+            title: "ralode"}'

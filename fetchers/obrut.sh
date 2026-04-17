@@ -22,7 +22,7 @@ if <<< "${JSON[@]}" jq -r '(.content // empty), .referer, .useragent' \
         | read -r URL
 
     echo "obrut: Final url $URL" >&2
-    <<< "${JSON[@]}" jq --arg url "$URL" 'del(.content,.useragent,.referer) | .type=video | .url=$url'
+    <<< "${JSON[@]}" jq --arg url "$URL" 'del(.content,.useragent,.referer) | .type="video" | .url=$url'
 else
     <<< "${JSON[@]}" jq -r '.url, (.url | split("/")[0:3] | join("/")), (.useragent // empty)' \
         | {
@@ -52,26 +52,38 @@ else
                         . + {season: $season, episode: $episode})))
                 | flatten | map(pick(.title,.t1,.file,.season,.episode))' \
             | mapfile JSON
+        ISMOVIE=0
     else
         echo "obrut: Parse movie" >&2
-        <<< "${JSON[@]}" jq '.file | map(pick(.title,.t1,.file) + {season: 0, episode: 0})' \
+        <<< "${JSON[@]}" jq '.file | map(pick(.title,.t1,.file))' \
             | mapfile JSON
+        ISMOVIE=1
     fi
 
     if [[ "$URL" =~ dubbing=([^?&]+) ]]; then
         DUB="${BASH_REMATCH[1]}"
 
-        echo "obrut: List series for [$DUB]" >&2
-        <<< "${JSON[@]}" jq --arg dub "${BASH_REMATCH[1]}" --arg ua "$UA" --arg dom "$DOMAIN" 'map(select(.title == $dub)) | {
-                list: map("\(.season)-\(.episode)" as $se | {
-                    content: .file,
-                    title: ("\($dub) \($se)" as $sup | .t1 | select(. != "") // $sup)}) | reverse,
-                haskey: "title",
-                type: "selectable",
-                fetcher: "obrut",
+        if [[ "$ISMOVIE" -eq 1 ]]; then
+            echo "obrut: Extract movie for [$DUB]" >&2
+            <<< "${JSON[@]}" jq --arg dub "${BASH_REMATCH[1]}" --arg ua "$UA" --arg dom "$DOMAIN" 'map(select(.title == $dub)) | .[0] | {
+                content: .file,
+                title: (.t1 | select(. != "") // $dub),
                 useragent: $ua,
-                referer: $dom,
-                title: "obrut"}'
+                referer: $dom}' \
+            | "$UNIPLAY" obrut
+        else
+            echo "obrut: List series for [$DUB]" >&2
+            <<< "${JSON[@]}" jq --arg dub "${BASH_REMATCH[1]}" --arg ua "$UA" --arg dom "$DOMAIN" 'map(select(.title == $dub)) | {
+                    list: map("\(.season)-\(.episode)" as $se | {
+                        content: .file,
+                        title: ("\($dub) \($se)" as $sup | .t1 | select(. != "") // $sup)}) | reverse,
+                    haskey: "title",
+                    type: "selectable",
+                    fetcher: "obrut",
+                    useragent: $ua,
+                    referer: $dom,
+                    title: "obrut"}'
+        fi
     else
         echo "obrut: List dubbers" >&2
         <<< "${JSON[@]}" jq --arg url "$URL" 'group_by(.title) | map(.[0].title as $name | {

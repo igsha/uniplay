@@ -8,13 +8,12 @@ jq -r '.url,(.url | split("/")[0:3] | join("/"))' \
     | { read -r URL; read -r DOMAIN; }
 
 if [[ "$URL" =~ \?num=[0-9]+ ]]; then
-    echo "opennet: Parse aricle $URL" >&2
+    echo "opennet: Parse article $URL" >&2
     http GET "$URL" \
         | iconv -f koi8-r -t utf-8 \
         | htmlq '.thdr2 tr td > *, .chtext > *' -r iframe \
         | pandoc -f html -t plain --wrap=none --reference-links \
-        | jq -R '{content: ., type: "text"}'
-
+        | jq -sR '{content: ., type: "text"}'
 else
     echo "opennet: List news $URL" >&2
     if [[ ! "$URL" =~ /opennews ]]; then

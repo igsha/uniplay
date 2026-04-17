@@ -17,7 +17,7 @@ if [[ "$URL" =~ /manga/[^/]+/.+ ]]; then
 
     <<< "${HTML[@]}" htmlq '#chapter_preloaded_images' -t \
         | grep -Po '\[.+\]' \
-        | jq --arg title "$TITLE" '{list: map({url: .}), title: $title, pipeline: "manga"}'
+        | jq --arg title "$TITLE" '{list: map({url: .}), title: $title, pipeline: "manga", type: "images"}'
 else
     echo "mangaonelove: List chapters $URL" >&2
     <<< "${HTML[@]}" htmlq 'ul.main.version-chap' --remove-nodes .c-new-tag \

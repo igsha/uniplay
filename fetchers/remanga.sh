@@ -2,7 +2,8 @@
 set -e
 shopt -s lastpipe
 
-jq -r .url \
+mapfile JSON
+<<< "${JSON[@]}" jq -r .url \
     | read -r URL
 
 if [[ "$URL" =~ [^/]+//[^/]+/manga/([^/]+)/([0-9]+) ]]; then
@@ -35,6 +36,8 @@ else
         URL="${BASEURL}&page=1"
     elif [[ "$URL" =~ [\?\&]page=[0-9]+ ]]; then
         BASEURL="${URL/${BASH_REMATCH[0]}/}"
+        <<< "${JSON[@]}" jq -r '.origurl // empty' \
+            | read -r ORIGURL
         echo "remanga: Continue list $URL" >&2
     else
         echo "remanga: Wrong url $URL" >&2
@@ -50,6 +53,7 @@ else
                 + [select($next != null) | {
                     url: "\($base)&page=\($next)",
                     title: "###next###"}],
+            origurl: $url,
             title: "remanga",
             hashkey: "url",
             type: "selectable"}'
