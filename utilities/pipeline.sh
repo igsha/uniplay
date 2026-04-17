@@ -12,7 +12,7 @@ while <<< "${JSON[@]}" jq -r '.type, .pipeline' | { read -r TYPE; read -r PIPELI
         manga)
             <<< "${JSON[@]}" "$UNIPLAY" download \
                 | "$UNIPLAY" create-pdf \
-                | "$UNIPLAY" pdf
+                | "$UNIPLAY" file-open
             break;;
         film)
             <<< "${JSON[@]}" "$UNIPLAY" mpv
@@ -20,7 +20,7 @@ while <<< "${JSON[@]}" jq -r '.type, .pipeline' | { read -r TYPE; read -r PIPELI
         *)
             case "$TYPE" in
                 pdf)
-                    <<< "${JSON[@]}" "$UNIPLAY" pdf
+                    <<< "${JSON[@]}" "$UNIPLAY" file-open
                     break;;
                 video)
                     <<< "${JSON[@]}" "$UNIPLAY" mpv
