@@ -74,5 +74,6 @@ jo -a "${URLS[@]}" \
         list: map({url: "https://img10.\($base)/pics/post/\(.)", title: ., fallback: "https://img2.\($base)/pics/post/\(.)"}),
         title: "joyreactor",
         hasheky: "url",
-        type: "images"
+        type: "images",
+        pipeline: "film"
     }'

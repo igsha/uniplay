@@ -13,7 +13,7 @@ shopt -s lastpipe
 which jq mpv http > /dev/null
 
 mapfile -t JSON
-<<< "${JSON[@]}" jq -r '.url // .urls[]' \
+<<< "${JSON[@]}" jq -r '.url // (.list[] | .url)' \
     | readarray -t ARGS
 
 [[ "${#ARGS[@]}" -gt 0 ]]

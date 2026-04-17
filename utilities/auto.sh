@@ -17,6 +17,7 @@ if ! <<< "${JSON[@]}" jq -r '.fetcher // empty' | read -r NAME; then
         NAME="${NAME##*.}"
     else
         echo "auto: Unexpected arguments or input [$ITEM]" >&2
+        echo "${JSON[@]}" >&2
         exit 1
     fi
 else
