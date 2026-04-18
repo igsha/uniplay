@@ -1,10 +1,10 @@
 # About
 
-uniplay is a universal player that support various resource types: URLs, files, images and so on.
+uniplay is a universal player that supports various resource types: URLs, files, images and so on.
 
-The system consists of fetchers that are concatenated into bash pipeline.
-Each fetcher takes messages from stdin and send another messages to stdout to be read by the next fetcher
-in pipeline (except terminal fetchers like `pdf` or `mpv`).
+The system consists of fetchers that are concatenated into a bash pipeline.
+Each fetcher takes message from stdin and send another message to stdout to be read by the next fetcher
+in pipeline (except terminal fetchers like `mpv`).
 To communicate fetchers with each other through stdin/stdout the JSON format of messages is used.
 
 There are 3 types of fetchers:
@@ -18,29 +18,32 @@ There are 3 types of fetchers:
 Common JSON message:
 ```json
 {
-    "item": "https://example.com/resource/image.jpg",
-    "title": "Example image"
+    "url": "https://example.com/resource/video.mp4",
+    "title": "Example video",
+    "type": "video"
 }
 ```
-Only `item` or `items` attribute is mandatory.
 
 Several URLs:
 ```json
 {
-    "items": [
+    "list": [
         {
-            "item": "https://example.com/image1.jpg",
-            "name": "Image 1"
+            "url": "https://example.com/image1.jpg",
+            "title": "Image 1.jpg"
         },
         {
-            "item": "https://example.com/image2.jpg",
-            "name": "Image 2"
+            "url": "https://example.com/image2.jpg",
+            "title": "Image 2.jpg"
         },
         {
-            "item": "https://example.com/image3.jpg",
-            "name": "Image 3"
+            "url": "https://example.com/image3.jpg",
+            "title": "Image 3.jpg"
         }
     ],
-    "title": "image-cache"
+    "title": "image-cache",
+    "hashkey": "url",
+    "type": "images",
+    "pipeline": "manga"
 }
 ```
