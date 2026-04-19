@@ -31,7 +31,7 @@ let
   ];
 in stdenv.mkDerivation {
   pname = "uniplay";
-  version = "0.2.0";
+  version = "0.2.1";
 
   src = ./.;
 
@@ -43,10 +43,10 @@ in stdenv.mkDerivation {
   installPhase = ''
     mkdir -p $out/{bin,share/uniplay}
 
-    cp -r "$src/fetchers" "$out/share/uniplay/"
+    cp -r "$src/fetchers" "$src/utilities" "$out/share/uniplay/"
 
-    cp "$src/uniplay" "$out/bin"
-    chmod +x "$out/bin/uniplay"
-    wrapProgram "$out/bin/uniplay" --prefix PATH : "${lib.makeBinPath deps}"
+    cp "$src/uniplay" "$src/s-uniplay" "$out/bin"
+    chmod +x "$out/bin/uniplay" "$out/bin/s-uniplay"
+    wrapProgram "$out/bin/s-uniplay" --prefix PATH : "${lib.makeBinPath deps}"
   '';
 }
