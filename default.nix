@@ -31,7 +31,7 @@ let
   ];
 in stdenv.mkDerivation {
   pname = "uniplay";
-  version = "0.2.1";
+  version = "0.2.2";
 
   src = ./.;
 
@@ -49,4 +49,12 @@ in stdenv.mkDerivation {
     chmod +x "$out/bin/uniplay" "$out/bin/s-uniplay"
     wrapProgram "$out/bin/s-uniplay" --prefix PATH : "${lib.makeBinPath deps}"
   '';
+
+  meta = with lib; {
+    description = "A universal media parser/player";
+    homepage = "https://github.com/igsha/uniplay";
+    maintainers = [ maintainers.igsha ];
+    platforms = platforms.unix;
+    license = licenses.mit;
+  };
 }
