@@ -2,6 +2,7 @@
   which, gnugrep, gnused, gawk, coreutils, findutils, iconv,
   jq, jo, ripgrep, httpie, htmlq, python3Packages, parallel, fzf,
   sqlite, imagemagick, pdfcpu, pandoc, mpv, xdg-utils, gost,
+  brotli,
 }:
 
 let
@@ -28,10 +29,11 @@ let
     mpv
     xdg-utils
     gost
+    brotli
   ];
 in stdenv.mkDerivation {
   pname = "uniplay";
-  version = "0.2.2";
+  version = "0.2.3";
 
   src = ./.;
 
