@@ -11,7 +11,12 @@ which jq jo http htmlq xq tr base64 sed > /dev/null
 jq -r '.url, (.url | split("/")[0:3] | join("/")), .title' \
     | { read -r URL; read -r DOMAIN; read -r TITLE; }
 
-if [[ "$URL" =~ translations=false ]]; then
+if [[ "$URL" =~ /video/([0-9]+)/([a-z0-9]+)/[^/]+\?translations=false ]]; then
+    VIDEOID="${BASH_REMATCH[1]}"
+    VIDEOHASH="${BASH_REMATCH[2]}"
+    echo "kodik: Extract movie $URL" >&2
+    jo url="$DOMAIN/ftor?type=video&id=$VIDEOID&hash=$VIDEOHASH" type=url title="$TITLE"
+elif [[ "$URL" =~ translations=false ]]; then
     EPISODE="-1"
     if [[ "$URL" =~ episode=([0-9]+) ]]; then
         EPISODE="${BASH_REMATCH[1]}"
@@ -65,7 +70,7 @@ elif [[ "$URL" =~ ftor\? ]]; then
 else
     echo "kodik: List dubbers $URL" >&2
     http --follow --timeout 5 GET "$URL" \
-        | htmlq .serial-translations-box \
+        | htmlq '.serial-translations-box, .movie-translations-box' \
         | xq --arg dom "$DOMAIN" '.div.select.option | map({
             url: "\($dom)/\(.["@data-media-type"])/\(.["@data-media-id"])/\(.["@data-media-hash"])/720p?translations=false",
             title: .["#text"]})
