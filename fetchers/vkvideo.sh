@@ -8,8 +8,8 @@ jq -r .url \
     | read -r URL
 
 APIURL="https://vkvideo.ru/al_video.php"
-if [[ "$URL" =~ /video(-[0-9]+_[0-9]+) ]]; then
-    VIDEOID="${BASH_REMATCH[1]}"
+if [[ "$URL" =~ /video(-[0-9]+)_([0-9]+) || "$URL" =~ /video_ext\.php\?oid=(-[0-9]+)\&id=([0-9]+) ]]; then
+    VIDEOID="${BASH_REMATCH[1]}_${BASH_REMATCH[2]}"
     echo "vkvideo: Get info $VIDEOID from $APIURL for $URL" >&2
     http --ignore-stdin -f POST "$APIURL" act=show "video=$VIDEOID" al=1 "Referer:$APIURL" X-Requested-With:XMLHttpRequest \
         | iconv -f cp1251 \
