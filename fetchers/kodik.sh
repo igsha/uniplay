@@ -11,33 +11,39 @@ which jq jo http htmlq xq tr base64 sed > /dev/null
 jq -r '.url, (.url | split("/")[0:3] | join("/")), .title' \
     | { read -r URL; read -r DOMAIN; read -r TITLE; }
 
-if [[ "$URL" =~ /video/([0-9]+)/([a-z0-9]+)/[^/]+\?translations=false ]]; then
-    VIDEOID="${BASH_REMATCH[1]}"
-    VIDEOHASH="${BASH_REMATCH[2]}"
+if [[ "$URL" =~ /(video|seria)/([0-9]+)/([a-z0-9]+)/[^/]+\?translations=false ]]; then
+    VIDEOTYPE="${BASH_REMATCH[1]}"
+    VIDEOID="${BASH_REMATCH[2]}"
+    VIDEOHASH="${BASH_REMATCH[3]}"
     echo "kodik: Extract movie $URL" >&2
-    jo url="$DOMAIN/ftor?type=video&id=$VIDEOID&hash=$VIDEOHASH" type=url title="$TITLE"
+    jo url="$DOMAIN/ftor?type=$VIDEOTYPE&id=$VIDEOID&hash=$VIDEOHASH" type=url title="$TITLE"
 elif [[ "$URL" =~ translations=false ]]; then
-    EPISODE="-1"
-    if [[ "$URL" =~ episode=([0-9]+) ]]; then
-        EPISODE="${BASH_REMATCH[1]}"
-        echo "kodik: Selected episode $EPISODE" >&2
-    fi
-
-    echo "kodik: List series $URL" >&2
     http --follow --timeout 5 GET "$URL" \
         | mapfile HTML
 
-    <<< "${HTML[@]}" htmlq title -t \
-        | read -r TITLE
+    if [[ "$URL" =~ episode=([0-9]+) ]]; then
+        EPISODE="${BASH_REMATCH[1]}"
+        echo "kodik: Selected episode $EPISODE of $URL" >&2
 
-    <<< "${HTML[@]}" htmlq .serial-series-box \
-        | xq --arg dom "$DOMAIN" --arg title "${TITLE:0:100}" '.div.select.option | if type == "object" then [.] else . end | {
-            list: map({
-                url: $dom + "/ftor?type=seria&id=" + .["@data-id"] + "&hash=" + .["@data-hash"],
-                title: $title + " " + .["@data-title"]
-            }) | reverse,
-            type: "selectable",
-            title: "kodik"}'
+        <<< "${HTML[@]}" htmlq '.player_box .get_code_copy' -a data-code \
+            | tail -1 \
+            | read -r URL
+
+        jo url="$URL?translations=false" title="${TITLE:0:100} - $EPISODE"
+    else
+        echo "kodik: List series $URL" >&2
+        <<< "${HTML[@]}" htmlq title -t \
+            | read -r TITLE
+
+        <<< "${HTML[@]}" htmlq .serial-series-box \
+            | xq --arg dom "$DOMAIN" --arg title "${TITLE:0:100}" '.div.select.option | if type == "object" then [.] else . end | {
+                list: map({
+                    url: $dom + "/ftor?type=seria&id=" + .["@data-id"] + "&hash=" + .["@data-hash"],
+                    title: $title + " " + .["@data-title"]
+                }) | reverse,
+                type: "selectable",
+                title: "kodik"}'
+    fi
 elif [[ "$URL" =~ ftor\? ]]; then
     echo "kodik: Extract video $URL" >&2
     http GET "$URL" \
@@ -46,12 +52,12 @@ elif [[ "$URL" =~ ftor\? ]]; then
 
     CAB="ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ"
     SAB="abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz"
-    for ((rot=0; rot<25; ++rot)); do
+    for ((rot=0; rot<26; ++rot)); do
         rot2=$((rot+1))
         <<< "$VAL" tr "A-Za-z" "${CAB:$rot2:1}-ZA-${CAB:$rot:1}${SAB:$rot2:1}-za-${SAB:$rot:1}" \
             | read -r RES
 
-        if [[ "$RES" =~ ^Ly9 ]]; then
+        if [[ "$RES" =~ ^Ly9 || "$RES" =~ ^aHR0c ]]; then
             <<< "$RES" base64 -d \
                 | { sed -e 's;^//;https://;'; echo; } \
                 | read -r URL
