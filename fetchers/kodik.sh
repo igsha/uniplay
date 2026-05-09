@@ -17,33 +17,31 @@ if [[ "$URL" =~ /(video|seria)/([0-9]+)/([a-z0-9]+)/[^/]+\?translations=false ]]
     VIDEOHASH="${BASH_REMATCH[3]}"
     echo "kodik: Extract movie $URL" >&2
     jo url="$DOMAIN/ftor?type=$VIDEOTYPE&id=$VIDEOID&hash=$VIDEOHASH" type=url title="$TITLE"
+elif [[ "$URL" =~ episode=([0-9]+) ]]; then
+    EPISODE="${BASH_REMATCH[1]}"
+    echo "kodik: Selected episode $EPISODE of $URL" >&2
+    http --follow --timeout 5 GET "$URL" \
+        | htmlq '.player_box .get_code_copy' -a data-code \
+        | tail -1 \
+        | read -r URL
+
+    jo url="$URL?translations=false" title="${TITLE:0:100} - $EPISODE"
 elif [[ "$URL" =~ translations=false ]]; then
     http --follow --timeout 5 GET "$URL" \
         | mapfile HTML
 
-    if [[ "$URL" =~ episode=([0-9]+) ]]; then
-        EPISODE="${BASH_REMATCH[1]}"
-        echo "kodik: Selected episode $EPISODE of $URL" >&2
+    echo "kodik: List series $URL" >&2
+    <<< "${HTML[@]}" htmlq title -t \
+        | read -r TITLE
 
-        <<< "${HTML[@]}" htmlq '.player_box .get_code_copy' -a data-code \
-            | tail -1 \
-            | read -r URL
-
-        jo url="$URL?translations=false" title="${TITLE:0:100} - $EPISODE"
-    else
-        echo "kodik: List series $URL" >&2
-        <<< "${HTML[@]}" htmlq title -t \
-            | read -r TITLE
-
-        <<< "${HTML[@]}" htmlq .serial-series-box \
-            | xq --arg dom "$DOMAIN" --arg title "${TITLE:0:100}" '.div.select.option | if type == "object" then [.] else . end | {
-                list: map({
-                    url: $dom + "/ftor?type=seria&id=" + .["@data-id"] + "&hash=" + .["@data-hash"],
-                    title: $title + " " + .["@data-title"]
-                }) | reverse,
-                type: "selectable",
-                title: "kodik"}'
-    fi
+    <<< "${HTML[@]}" htmlq .serial-series-box \
+        | xq --arg dom "$DOMAIN" --arg title "${TITLE:0:100}" '.div.select.option | if type == "object" then [.] else . end | {
+            list: map({
+                url: $dom + "/ftor?type=seria&id=" + .["@data-id"] + "&hash=" + .["@data-hash"],
+                title: $title + " " + .["@data-title"]
+            }) | reverse,
+            type: "selectable",
+            title: "kodik"}'
 elif [[ "$URL" =~ ftor\? ]]; then
     echo "kodik: Extract video $URL" >&2
     http GET "$URL" \
