@@ -50,7 +50,7 @@ for CHECK_FETCHER in "${POSSIBLE_FETCHERS[@]}"; do
     fi
 done
 if [[ ! -e "$FETCHER" ]]; then
-    echo "uniplay: Cannot find $NAME" >&2
+    echo "uniplay: Cannot find $NAME: ${JSON[@]}" >&2
     exit 2
 fi
 

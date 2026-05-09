@@ -31,7 +31,7 @@ echo "selector: hasmark=$HASMARK keys=[${KEYS[@]}]" >&2
 printf "%s" "$RAWVALUES" \
     | readarray -t -d $'\t' VALUES
 
-echo "selector: values=[${VALUES[@]}]" >&2
+echo "selector: values=[${VALUES[0]} ...]" >&2
 {
     <<< "${JSON[@]}" jq 'del(.list, .type)'
     for ((i=0; i < ${#KEYS[@]}; ++i)); do
