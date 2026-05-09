@@ -35,16 +35,26 @@ else
         <<< "${JSON[@]}" jq -r '.titleName[0:100] + if (.titleName | length) > 100 then "..." else "" end' \
             | read -r TITLE
 
-        echo "cdnvideohub: List episodes [$VOICE]" >&2
-        <<< "${JSON[@]}" jq --arg voice "$VOICE" --arg title "$TITLE" \
-                '.items | map(select(.voiceStudio == $voice) | {
+        if [[ "$URL" =~ episode=([0-9]+) ]]; then
+            EPISODE="${BASH_REMATCH[1]}"
+            echo "cdnvideohub: Convert video [$VOICE]+$EPISODE" >&2
+            <<< "${JSON[@]}" jq --arg voice "$VOICE" --arg title "$TITLE" --argjson ep "$EPISODE" \
+                '.items | map(select(.voiceStudio == $voice and .episode == $ep))[0] | {
                     url: "https://plapi.cdnvideohub.com/api/v1/player/sv/video/\(.vkId)",
                     title: "\($title) \(.season)-\(.episode)"
-                }) | reverse | {
-                    list: .,
-                    title: "cdnvideohub",
-                    hashkey: "url",
-                    type: "selectable"}'
+                }'
+        else
+            echo "cdnvideohub: List episodes [$VOICE]" >&2
+            <<< "${JSON[@]}" jq --arg voice "$VOICE" --arg title "$TITLE" \
+                    '.items | map(select(.voiceStudio == $voice) | {
+                        url: "https://plapi.cdnvideohub.com/api/v1/player/sv/video/\(.vkId)",
+                        title: "\($title) \(.season)-\(.episode)"
+                    }) | reverse | {
+                        list: .,
+                        title: "cdnvideohub",
+                        hashkey: "url",
+                        type: "selectable"}'
+        fi
     else
         echo "cdnvideohub: List voices (voice name, series count)" >&2
         <<< "${JSON[@]}" jq --arg url "$URL" \
