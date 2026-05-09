@@ -102,7 +102,7 @@ fi
     | ismanga
 
 # yummyani
-"$UNIPLAY" auto "https://site.yummyani.me/catalog/item/doktor-stoun-nauchnoe-buduschee-chast-3" \
+"$UNIPLAY" auto "https://old.yummyani.me/catalog/item/monolog-maomao" \
     | mapfile JSON
 
 # cdnvideohub
@@ -119,7 +119,15 @@ fi
     | takeidx 0 \
     | takeidx 0 \
     | "$UNIPLAY" auto \
-    | jq -e '.url | test("https://*?kodik.*?\\.com/ftor\\?type=\\w+&id=\\d+&hash=\\w+")' \
+    | jq -e '.url | test("https://.*?kodik.*?\\.com/ftor\\?type=\\w+&id=\\d+&hash=\\w+")' \
+    >/dev/null
+
+# sibnet
+<<< "${JSON[@]}" jq '.list[] | select(.title| test("sibnet"; "i"))' \
+    | "$UNIPLAY" auto \
+    | takeidx 0 \
+    | takeidx 0 \
+    | jq -e '.url | test("https://.*?sibnet.*?\\.mp4")' \
     >/dev/null
 
 echo "autotest: DONE" >&2
