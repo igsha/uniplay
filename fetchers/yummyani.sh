@@ -33,14 +33,15 @@ if [[ "$URL" =~ dubbing_code=([^\&\?]+)[\&\?]anime_id=([0-9]+)([\&]episode=([0-9
 elif [[ "$URL" =~ /api/.+dubbing=([^\&]+) ]]; then
     DUBBING="${BASH_REMATCH[1]}"
     echo "yummyani: List series for dubbing $DUBBING in $URL" >&2
-    <<< "${JSON[@]}" jq -r '.title2, (.other | @base64d)' \
+    <<< "${JSON[@]}" jq -r '.title2, (.other // empty | @base64d)' \
         | { read -r TITLE; mapfile INNERJSON; }
 
     if ((${#INNERJSON[@]} == 0)); then
         [[ "$URL" =~ player_id=([^\&]+) ]]
         PLAYER_ID="${BASH_REMATCH[1]}"
+        echo "yummyani: No JSON part, reget [$PLAYER_ID] $URL" >&2
         http -F GET "$URL" \
-            | jq --arg player_id "$PLAYER_ID" --arg dubbing "$DUBBING" \
+            | jq --argjson player_id "$PLAYER_ID" --arg dubbing "$DUBBING" \
                 '.response | map(select(.data | .player_id == $player_id and .dubbing == $dubbing))' \
             | mapfile INNERJSON
     fi
@@ -57,12 +58,13 @@ elif [[ "$URL" =~ /api/.+dubbing=([^\&]+) ]]; then
 elif [[ "$URL" =~ /api/.+player_id=([^\&]+) ]]; then
     PLAYER_ID="${BASH_REMATCH[1]}"
     echo "yummyani: List dubbers for player $PLAYER_ID in $URL" >&2
-    <<< "${JSON[@]}" jq -re '.title2, (.other | @base64d)' \
+    <<< "${JSON[@]}" jq -re '.title2, (.other // empty | @base64d)' \
         | { read -r TITLE; mapfile INNERJSON; }
 
     if ((${#INNERJSON[@]} == 0)); then
+        echo "yummyani: No JSON part, reget $URL" >&2
         http -F GET "$URL" \
-            | jq --arg player_id "$PLAYER_ID" '.response | map(select(.data.player_id == $player_id))' \
+            | jq --argjson player_id "$PLAYER_ID" '.response | map(select(.data.player_id == $player_id))' \
             | mapfile INNERJSON
     fi
 

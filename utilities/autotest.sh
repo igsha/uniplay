@@ -47,9 +47,10 @@ fi
     | ism3u8video
 
 # substack
-"$UNIPLAY" auto "https://substack.com/home/post/p-183538018" \
-    | jq -e '(.url | test("type=hls")) and .type == "video"' \
-    >/dev/null
+# Doesn't work without KVN
+#"$UNIPLAY" auto "https://substack.com/home/post/p-183538018" \
+#    | jq -e '(.url | test("type=hls")) and .type == "video"' \
+#    >/dev/null
 
 # obrut movie
 "$UNIPLAY" auto "https://44baba96.obrut.show/embed/wN/content/MDNwkTN?dubbing=(RU) MVO | LostFilm" \
@@ -108,14 +109,17 @@ fi
 <<< "${JSON[@]}" jq '.list[] | select(.title| test("CVH"))' \
     | "$UNIPLAY" auto \
     | takeidx 0 \
-    | jq -e '.list[0].url | test("https://.*?cdnvideohub\\.com/api/v1/player/sv/video/\\d+")' \
+    | takeidx 0 \
+    | jq -e '.url | test("https://.*?cdnvideohub\\.com/api/v1/player/sv/video/\\d+")' \
     >/dev/null
 
 # kodik
 <<< "${JSON[@]}" jq '.list[] | select(.title| test("Kodik"; "i"))' \
     | "$UNIPLAY" auto \
     | takeidx 0 \
-    | jq -e '.list[0].url | test("https://*?kodik.*?\\.com/ftor\\?type=\\w+&id=\\d+&hash=\\w+")' \
+    | takeidx 0 \
+    | "$UNIPLAY" auto \
+    | jq -e '.url | test("https://*?kodik.*?\\.com/ftor\\?type=\\w+&id=\\d+&hash=\\w+")' \
     >/dev/null
 
 echo "autotest: DONE" >&2
