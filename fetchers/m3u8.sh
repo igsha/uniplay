@@ -2,7 +2,7 @@
 set -e
 shopt -s lastpipe
 
-which jq jo xargs > /dev/null
+which jq jo xargs >/dev/null
 
 jq -r 'has("url"), .url // .file' \
     | { read -r ISURL; read -r ITEM; }

@@ -2,7 +2,7 @@
 set -e
 shopt -s lastpipe
 
-which jq http htmlq > /dev/null
+which jq http htmlq sed xq htmlq tee xargs jo >/dev/null
 
 jq -r '.url, (.url | split("/")[:3] | join("/"))' \
     | { read -r URL; read -r DOMAIN; }

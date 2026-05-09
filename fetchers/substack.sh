@@ -2,7 +2,7 @@
 set -e
 shopt -s lastpipe
 
-which jq tee xargs http htmlq sed xq > /dev/null
+which jq tee xargs http htmlq sed xq >/dev/null
 
 jq -r .url \
     | tee >(xargs printf "substack: Download %s\n" >&2) \

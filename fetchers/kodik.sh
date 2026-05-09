@@ -6,7 +6,7 @@
 set -e
 shopt -s lastpipe
 
-which jq jo http htmlq xq tr base64 sed > /dev/null
+which jq jo http htmlq xq tr base64 sed >/dev/null
 
 jq -r '.url, (.url | split("/")[0:3] | join("/")), .title' \
     | { read -r URL; read -r DOMAIN; read -r TITLE; }

@@ -2,7 +2,7 @@
 set -e
 shopt -s lastpipe
 
-which jq jo > /dev/null
+which jq jo http tee sha1sum cut tee xargs awk >/dev/null
 
 mapfile -t JSON
 <<< "${JSON[@]}" jq -r '.url, (.url | split("/")[2] | split(".")[-2:] | join("."))' \

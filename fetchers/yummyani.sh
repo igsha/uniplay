@@ -2,7 +2,7 @@
 set -e
 shopt -s lastpipe
 
-which jq http awk grep rg brotli > /dev/null
+which jq http awk grep rg brotli xargs htmlq >/dev/null
 
 mapfile -t JSON
 <<< "${JSON[@]}" jq -r .url \

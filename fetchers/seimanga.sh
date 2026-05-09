@@ -2,6 +2,8 @@
 set -e
 shopt -s lastpipe
 
+which jq http xq tr grep sed xq >/dev/null
+
 jq -r '.url, (.url | split("/")[:3] | join("/"))' \
     | { read -r URL; read -r DOMAIN; }
 

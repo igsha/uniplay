@@ -2,7 +2,7 @@
 set -e
 shopt -s lastpipe
 
-which jq http grep sed base64 tee rg > /dev/null
+which jq http grep sed base64 tee rg tr >/dev/null
 
 mapfile JSON
 if <<< "${JSON[@]}" jq -r '(.content // empty), .referer, .useragent' \

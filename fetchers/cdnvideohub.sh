@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Input: https://plapi.cdnvideohub.com/api/v1/player/sv/playlist?pub=<pub>&aggr=<aggr>&id=<id>[&dubbing_code=<dubbing>]
+# Input: https://plapi.cdnvideohub.com/api/v1/player/sv/playlist?pub=<pub>&aggr=<aggr>&id=<id>[&dubbing_code=<dubbing>][&episode=<ep>]
 # Input: https://plapi.cdnvideohub.com/api/v1/player/sv/video/<vkId>
 # Output:
 #   * ask for translation (if no `dubbing_code`),
-#   * ask for seria (if no `vkId`)
+#   * ask for seria (if no `vkId` or `ep`)
 set -e
 shopt -s lastpipe
 
-which jq http tee > /dev/null
+which jq http tee >/dev/null
 
 mapfile JSON
 <<< "${JSON[@]}" jq -r .url \

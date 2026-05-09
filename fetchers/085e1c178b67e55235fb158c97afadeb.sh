@@ -2,6 +2,8 @@
 set -e
 shopt -s lastpipe
 
+which http htmlq sed jo jq >/dev/null
+
 mapfile JSON
 <<< "${JSON[@]}" jq -r '.url,(.url | split("/")[0:3] | join("/"))' \
     | { read -r URL; read -r DOMAIN; }

@@ -2,7 +2,7 @@
 set -e
 shopt -s lastpipe
 
-which grep http sed jq > /dev/null
+which grep http sed jq >/dev/null
 
 mapfile -t JSON
 <<< "${JSON[@]}" jq -r '.url, (.url | split("/")[0:3] | join("/"))' \

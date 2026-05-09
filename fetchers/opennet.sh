@@ -2,7 +2,7 @@
 set -euo pipefail
 shopt -s lastpipe
 
-which jq http iconv htmlq xq sed pandoc > /dev/null
+which jq http iconv htmlq xq sed pandoc >/dev/null
 
 jq -r '.url,(.url | split("/")[0:3] | join("/"))' \
     | { read -r URL; read -r DOMAIN; }

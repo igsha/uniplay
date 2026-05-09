@@ -2,6 +2,8 @@
 set -e
 shopt -s lastpipe
 
+which jq http >/dev/null
+
 mapfile JSON
 <<< "${JSON[@]}" jq -r .url \
     | read -r URL

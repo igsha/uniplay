@@ -2,7 +2,7 @@
 set -e
 shopt -s lastpipe
 
-which grep jq http jo parallel > /dev/null
+which grep jq http jo xargs tee htmlq >/dev/null
 
 mapfile -t JSON
 <<< "${JSON[@]}" jq -r '.url,(.title // "")' \
@@ -20,9 +20,8 @@ if <<< "${HTML[@]}" grep -Po "subtitles: \K\[[^\]]+\]" | jq -r '.[0] | .src' | r
 fi
 
 <<< "${HTML[@]}" htmlq 'video > source' -a src \
+    | tee >(xargs printf "videoplayer: Extract %s\n" >&2) \
     | readarray -t URLS
-
-parallel -k echo "videoplayer: Extract {}" ::: "${URLS[@]}" >&2
 
 jo -a "${URLS[@]}" \
     | jo list=:- -n title="$TITLE" subsurl="$SUBURL" \

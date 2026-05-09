@@ -2,7 +2,7 @@
 set -e
 shopt -s lastpipe
 
-which jq http htmlq > /dev/null
+which jq http htmlq >/dev/null
 
 jq -r .url \
     | read -r URL
@@ -29,5 +29,4 @@ echo "lomont: Selected voice id $VOICE_ID" >&2
 echo "lomont: Download seria $URL" >&2
 export TITLE
 http GET "$URL" \
-    | jq '{item: .src, title: env.TITLE} + ({subsurl: .subtitles.ru?} // {})' \
-    | "$UNIPLAY" -f mpv
+    | jq '{url: .src, title: env.TITLE, type: "video"} + ({subsurl: .subtitles.ru?} // {})'

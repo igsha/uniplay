@@ -2,7 +2,7 @@
 set -e
 shopt -s lastpipe
 
-which jq grep http > /dev/null
+which jq grep http >/dev/null
 
 jq -r '.url, (.limit // 10)' \
     | { read -r URL; read -r LIMIT; }

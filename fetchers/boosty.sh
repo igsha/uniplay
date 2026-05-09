@@ -2,6 +2,8 @@
 set -e
 shopt -s lastpipe
 
+which jq sqlite3 http >/dev/null
+
 jq -r '.url, .token, .cookiesdb' \
     | { read -r URL; read -r ACCESS_TOKEN; read -r COOKIES_DB; }
 

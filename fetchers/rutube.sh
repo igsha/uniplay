@@ -2,7 +2,7 @@
 set -e
 shopt -s lastpipe
 
-which http jq jo > /dev/null
+which http jq jo sort tee head awk >/dev/null
 
 mapfile -t JSON
 <<< "${JSON[@]}" jq -r .url \

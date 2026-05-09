@@ -2,7 +2,7 @@
 set -e
 shopt -s lastpipe
 
-which jq http iconv htmlq tee awk jo > /dev/null
+which jq http iconv htmlq tee awk jo >/dev/null
 
 jq -r .url \
     | read -r URL

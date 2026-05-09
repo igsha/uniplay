@@ -2,7 +2,7 @@
 set -e
 shopt -s lastpipe
 
-which jq http htmlq grep xq > /dev/null
+which jq http htmlq grep xq >/dev/null
 
 jq -r '.url // empty' \
     | read -r URL
