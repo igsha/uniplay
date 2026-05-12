@@ -42,7 +42,7 @@ POST_ID="${BASH_REMATCH[2]}"
 URL="https://api.boosty.to/v1/blog/$USERNAME/post/$POST_ID"
 echo "boosty: Download videos $URL" >&2
 http GET "$URL" "Authorization:Bearer $ACCESS_TOKEN" \
-    | jq '.data | map(.playerUrls | map(select(.url != "") | .key=.type | .value=.url) | from_entries)' \
+    | jq '.data | map(select(.playerUrls) | .playerUrls | map(select(.url != "") | .key=.type | .value=.url) | from_entries)' \
     | mapfile JSON
 
 if <<< "${JSON[@]}" jq -e 'length == 1' >/dev/null; then
