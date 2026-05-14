@@ -61,7 +61,7 @@ EOF
 
     ((PAGE--))
 
-    <<< "${JSON[@]}" jq -r '.data.tag.postPager.posts[] | select(.attributes[0].type == "PICTURE")
+    <<< "${JSON[@]}" jq -r '.data.tag.postPager.posts[] | select(.attributes[0] | .type == "PICTURE" or .type == "VIDEO")
                 | (.tags[:3] | map(.name | gsub(" |/|#|\\?"; "-")) | join("-")) as $prefix
                 | .attributes[0] | (.id | @base64d | split(":")[-1]) as $id | (.image.type | ascii_downcase) as $imgtype
                 | "\($prefix)-\($id).\($imgtype)"' \
@@ -74,6 +74,7 @@ jo -a "${URLS[@]}" \
         list: map({url: "https://img10.\($base)/pics/post/\(.)", title: ., fallback: "https://img2.\($base)/pics/post/\(.)"}),
         title: "joyreactor",
         hashkey: "url",
+        referer: "https://joyreactor.cc/",
         type: "images",
         pipeline: "film"
     }'
