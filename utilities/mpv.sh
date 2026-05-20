@@ -2,7 +2,8 @@
 # Input:
 #   * item - file or URL
 #   * title - window title (aka --title)
-#   * referer - referer HTTP header (aka --http-header-fields)
+#   * referer - referer HTTP header (will be placed into --http-header-fields)
+#   * origin - origin HTTP header (will be placed into --http-header-fields)
 #   * suburl - URL with subtitles (aka --sub-file)
 #   * chapters - array with '{start: time, end: time, text: string}' items (aka --chapters-file)
 #   * useragent - user agent HTTP header (aka --user-agent)
@@ -19,9 +20,20 @@ mapfile -t JSON
 [[ "${#ARGS[@]}" -gt 0 ]]
 echo "mpv: Extract ${ARGS[@]}" >&2
 
-if <<< "${JSON[@]}" jq -r '.referer // empty' | read -r REFERER; then
-    echo "mpv: Use referer=$REFERER" >&2
-    ARGS+=("--http-header-fields=Referer:$REFERER")
+HTTP_HEADERS=()
+if <<< "${JSON[@]}" jq -r '.referer // empty' | read -r VALUE; then
+    echo "mpv: Use referer=$VALUE" >&2
+    HTTP_HEADERS+=("Referer:$VALUE")
+fi
+
+if <<< "${JSON[@]}" jq -r '.origin // empty' | read -r VALUE; then
+    echo "mpv: Use origin=$VALUE" >&2
+    HTTP_HEADERS+=("Origin:$VALUE")
+fi
+
+if ((${#HTTP_HEADERS[@]} > 0)); then
+    printf -v VALUESLIST "%s," "${HTTP_HEADERS[@]}"
+    ARGS+=("--http-header-fields=${VALUESLIST%,}")
 fi
 
 if <<< "${JSON[@]}" jq -r '.title // empty' | read -r TITLE; then

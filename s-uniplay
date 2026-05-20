@@ -6,7 +6,21 @@ which awk md5sum jo jq > /dev/null
 
 realpath "$0" | read -r UNIPLAY
 dirname "$UNIPLAY" | read -r SCRIPT_DIR
-export UNIPLAY
+UNIPLAYDIRS=(\
+    "$XDG_CONFIG_HOME/uniplay/fetchers" \
+    "$XDG_CONFIG_HOME/uniplay/fetchers" \
+    "$XDG_CONFIG_HOME/uniplay/utilities" \
+    "$SCRIPT_DIR/../share/uniplay/fetchers" \
+    "$SCRIPT_DIR/../share/uniplay/fetchers" \
+    "$SCRIPT_DIR/../share/uniplay/utilities" \
+    "$SCRIPT_DIR/fetchers" \
+    "$SCRIPT_DIR/fetchers" \
+    "$SCRIPT_DIR/utilities" \
+)
+printf -v UNIPLAYPATH "%s:" "${UNIPLAYDIRS[@]}"
+UNIPLAYPATH="${UNIPLAYPATH%:}"
+
+export UNIPLAY UNIPLAYPATH
 
 if [[ "$#" -eq 0 ]]; then
     echo "uniplay: First argument should be a fetcher" >&2
@@ -26,32 +40,15 @@ else
     fi | mapfile JSON
 fi
 
-<<< "$NAME" md5sum \
-    | cut -c -32 \
-    | read -r HASH
+if ! PATH="$PATH:$UNIPLAYPATH" command -v "$NAME.sh" | read -r FETCHER; then
+    <<< "$NAME" md5sum \
+        | cut -c -32 \
+        | read -r HASH
 
-POSSIBLE_FETCHERS=(\
-    "$XDG_CONFIG_HOME/uniplay/fetchers/$NAME.sh" \
-    "$XDG_CONFIG_HOME/uniplay/fetchers/$HASH.sh" \
-    "$XDG_CONFIG_HOME/uniplay/utilities/$NAME.sh" \
-    "$SCRIPT_DIR/../share/uniplay/fetchers/$NAME.sh" \
-    "$SCRIPT_DIR/../share/uniplay/fetchers/$HASH.sh" \
-    "$SCRIPT_DIR/../share/uniplay/utilities/$NAME.sh" \
-    "$SCRIPT_DIR/fetchers/$NAME.sh" \
-    "$SCRIPT_DIR/fetchers/$HASH.sh" \
-    "$SCRIPT_DIR/utilities/$NAME.sh" \
-)
-
-FETCHER=
-for CHECK_FETCHER in "${POSSIBLE_FETCHERS[@]}"; do
-    if [[ -e "$CHECK_FETCHER" ]]; then
-        FETCHER="$CHECK_FETCHER"
-        break
+    if ! PATH="$PATH:$UNIPLAYPATH" command -v "$HASH.sh" | read -r FETCHER; then
+        echo "uniplay: Cannot find $NAME: ${JSON[@]}" >&2
+        exit 2
     fi
-done
-if [[ ! -e "$FETCHER" ]]; then
-    echo "uniplay: Cannot find $NAME: ${JSON[@]}" >&2
-    exit 2
 fi
 
 <<< "${JSON[@]}" jq --arg uni "$UNIPLAY" '.uniplay=$uni' \
