@@ -11,6 +11,7 @@ mapfile -t JSON
 if [[ "$URL" =~ /video.php\?id=[0-9]+ ]]; then
     echo "c015fff88070de99d94611d6da69b934: Extract video from $URL" >&2
     <<< "${JSON[@]}" "$UNIPLAY" iframe \
+        | jq 'del(.referer)' \
         | "$UNIPLAY" videoplayer \
         | jq '.url=(.list | map(.url | select(test("premium") | not)) | .[-1]) | del(.list) | .type="video"'
 else

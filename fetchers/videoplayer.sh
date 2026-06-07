@@ -12,6 +12,7 @@ if <<< "${JSON[@]}" jq -r '.referer // empty' | read -r REFERER; then
     REFERER="referer:$REFERER"
 fi
 
+echo "videoplayer: Download $URL" >&2
 http --follow --timeout 5 GET "$URL" $REFERER \
     | mapfile HTML
 

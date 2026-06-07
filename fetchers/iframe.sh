@@ -12,6 +12,7 @@ if <<< "${JSON[@]}" jq -r '.referer // empty' | read -r REFERER; then
     REFERER="referer:$REFERER"
 fi
 
+echo "iframe: Download $URL" >&2
 http --follow --timeout 10 GET "$URL" $REFERER \
     | mapfile HTML
 
@@ -19,9 +20,6 @@ http --follow --timeout 10 GET "$URL" $REFERER \
     | sed 's;^//;https://;' \
     | read -r URL
 
-[[ "$URL" =~ [^/]+://[^/]+/ ]]
-DOMAIN="${BASH_REMATCH[0]}"
-
 echo "iframe: Extract $URL" >&2
 
-jo url="$URL" referer="$DOMAIN" -n title="$TITLE"
+jo url="$URL" -n title="$TITLE"
