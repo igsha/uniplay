@@ -30,10 +30,11 @@ elif [[ "$URL" =~ /playlist/(-[0-9]+)_([0-9]+) ]]; then
         | jq --arg id "$PLSTID" -r '.payload[1][0].[$id].list
             | map({url: .[] | select(type == "string" and contains("/video-")) | "https://vkvideo.ru" + ., title: .[3]})
             | {list: . | reverse, title: "vkvideo", type: "selectable", hashkey: "url"}'
-elif [[ "$URL" =~ /@[^/]+/clips ]]; then
+elif [[ "$URL" =~ /@[^/]+/ ]]; then
     CLIENTID=52461373
-    echo "vkvideo: Get anonym_token" >&2
-    http --ignore-stdin -f POST "https://login.vk.com/?act=get_anonym_token" \
+    POSTURL="https://login.vk.com/?act=get_anonym_token"
+    echo "vkvideo: Get anonym_token from $POSTURL" >&2
+    http --ignore-stdin -f POST "$POSTURL" \
             client_secret=o557NLIkAErNhakXrQ7A \
             client_id="$CLIENTID" \
             scopes=audio_anonymous,video_anonymous,photos_anonymous,profile_anonymous \
@@ -43,11 +44,13 @@ elif [[ "$URL" =~ /@[^/]+/clips ]]; then
         | jq -r .data.access_token \
         | read -r ACCESS_TOKEN
 
-    http --ignore-stdin -f POST "https://api.vkvideo.ru/method/catalog.getVideo?v=5.275&client_id=$CLIENTID" \
+    POSTURL="https://api.vkvideo.ru/method/catalog.getVideo?v=5.275&client_id=$CLIENTID"
+    echo "vkvideo: Post data to $POSTURL with access_token=$ACCESS_TOKEN" >&2
+    http --ignore-stdin -f POST "$POSTURL" \
             "url=$URL" \
             need_blocks=1 \
             "access_token=$ACCESS_TOKEN" \
-        | jq '.response.videos | map({url: (.files | .hls), title: .description}) | {
+        | jq '.response.videos | map({url: (.files | .hls), title}) | {
             list: .,
             hashkey: "url",
             title: "vkvideo",
