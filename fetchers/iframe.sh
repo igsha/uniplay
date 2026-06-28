@@ -13,7 +13,7 @@ if <<< "${JSON[@]}" jq -r '.referer // empty' | read -r REFERER; then
 fi
 
 echo "iframe: Download $URL" >&2
-http --follow --timeout 10 GET "$URL" $REFERER \
+http --follow GET "$URL" $REFERER \
     | mapfile HTML
 
 <<< "${HTML[@]}" grep -Po '<iframe.*src="\K[^"]+' \

@@ -13,7 +13,7 @@ if <<< "${JSON[@]}" jq -r '.referer // empty' | read -r REFERER; then
 fi
 
 echo "ralode: Extract $URL" >&2
-http --follow --timeout 10 GET "$URL" $REFERER \
+http --follow GET "$URL" $REFERER \
     | grep -Po "(?<=RalodePlayer.init\().+(?=\);)" \
     | sed -e '1i[' -e 'a]' \
     | jq --arg dom "$DOMAIN" '.[0] | to_entries | map(

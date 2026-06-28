@@ -83,11 +83,11 @@ if <<< "${JSON[@]}" jq -r '.proxy // empty' | read -r PROXY; then
     if [[ "${PROXY:0:5}" == socks ]]; then
         which gost pkill >/dev/null
         USE_GOST=1
-        coproc GOST { gost -L http://:8080 -F "$PROXY"; }
+        coproc GOST { gost -L http://:18283 -F "$PROXY"; }
         sleep 0.5
 
         echo "mpv: Replace $PROXY by gost pid=$GOST_PID" >&2
-        PROXY="http://localhost:8080"
+        PROXY="http://localhost:18283"
     fi
 
     echo "mpv: Use proxy=$PROXY" >&2

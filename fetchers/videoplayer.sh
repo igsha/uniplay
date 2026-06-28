@@ -13,7 +13,7 @@ if <<< "${JSON[@]}" jq -r '.referer // empty' | read -r REFERER; then
 fi
 
 echo "videoplayer: Download $URL" >&2
-http --follow --timeout 5 GET "$URL" $REFERER \
+http --follow GET "$URL" $REFERER \
     | mapfile HTML
 
 if <<< "${HTML[@]}" grep -Po "subtitles: \K\[[^\]]+\]" | jq -r '.[0] | .src' | read -r SUBURL; then

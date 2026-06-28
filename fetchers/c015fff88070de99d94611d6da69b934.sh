@@ -17,5 +17,5 @@ if [[ "$URL" =~ /video.php\?id=[0-9]+ ]]; then
 else
     echo "c015fff88070de99d94611d6da69b934: List videos $URL" >&2
     <<< "${JSON[@]}" "$UNIPLAY" ralode \
-        | jq '.list |= reverse | .title="c015fff88070de99d94611d6da69b934" | .type="selectable"'
+        | jq '.list |= reverse | .title="c015fff88070de99d94611d6da69b934" | .type="selectable" | .hashkey="title"'
 fi
