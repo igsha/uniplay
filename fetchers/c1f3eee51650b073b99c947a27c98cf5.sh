@@ -31,7 +31,7 @@ else
         | htmlq '#chapters-list .chapter-link' \
         | htmlq \
         | xq --arg url "$DOMAIN" '.html.body.a | {
-            list: map({
+            list: if type == "array" then . else [.] end | map({
                 url: $url + .["@href"],
                 title: .["#text"]
             }),

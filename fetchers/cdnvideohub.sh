@@ -39,14 +39,14 @@ else
             EPISODE="${BASH_REMATCH[1]}"
             echo "cdnvideohub: Convert video [$VOICE]+$EPISODE" >&2
             <<< "${JSON[@]}" jq --arg voice "$VOICE" --arg title "$TITLE" --argjson ep "$EPISODE" \
-                '.items | map(select(.voiceStudio == $voice and .episode == $ep))[0] | {
+                '.items | map(select((.voiceStudio // .voiceType) == $voice and .episode == $ep))[0] | {
                     url: "https://plapi.cdnvideohub.com/api/v1/player/sv/video/\(.vkId)",
                     title: "\($title) \(.season)-\(.episode)"
                 }'
         else
             echo "cdnvideohub: List episodes [$VOICE]" >&2
             <<< "${JSON[@]}" jq --arg voice "$VOICE" --arg title "$TITLE" \
-                    '.items | map(select(.voiceStudio == $voice) | {
+                    '.items | map(select((.voiceStudio // .voiceType) == $voice) | {
                         url: "https://plapi.cdnvideohub.com/api/v1/player/sv/video/\(.vkId)",
                         title: "\($title) \(.season)-\(.episode)"
                     }) | reverse | {
@@ -58,7 +58,7 @@ else
     else
         echo "cdnvideohub: List voices (voice name, series count)" >&2
         <<< "${JSON[@]}" jq --arg url "$URL" \
-                '.items | group_by(.voiceStudio) | map(.[0].voiceStudio as $name | {
+                '.items | group_by(.voiceStudio) | map((.[0] | .voiceStudio // .voiceType) as $name | {
                     title: $name,
                     count: length,
                     url: "\($url)&dubbing_code=\($name)"})
