@@ -8,8 +8,9 @@ mapfile -t JSON
 <<< "${JSON[@]}" jq -r '.url, (.url | split("/")[2] | split(".")[-2:] | join("."))' \
     | { read -r URL; read -r SERVER; }
 
-if [[ "$URL" =~ tags=([^&]+) || "$URL" =~ /videos ]]; then
+if [[ "$URL" =~ tags=([^&]+)(.*) || "$URL" =~ /videos ]]; then
     TAGS="${BASH_REMATCH[1]}"
+    RESTPARAMS="${BASH_REMATCH[2]}"
     echo "3451cf94720cf02db675405dafbbee07: List $URL" >&2
 
     if [[ "$URL" =~ proxy=([^&]+) ]]; then
@@ -25,9 +26,9 @@ if [[ "$URL" =~ tags=([^&]+) || "$URL" =~ /videos ]]; then
     fi
 
     if [[ -n "$TAGS" ]]; then
-        URL="https://apiq.${SERVER}/videos?tags=${TAGS}&sort=date"
+        URL="https://apiq.${SERVER}/videos?tags=${TAGS}${RESTPARAMS}"
     else
-        URL="https://apiq.${SERVER}/videos?rating=all&sort=date&limit=32"
+        URL="https://apiq.${SERVER}/videos?rating=all${RESTPARAMS}"
     fi
 
     NEXTURL="$URL&page=$((PAGENUM+1))"
