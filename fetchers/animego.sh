@@ -13,7 +13,7 @@ if [[ "$URL" =~ /player/videos/[0-9]+ ]]; then
         | jq -r .data.content \
         | htmlq '*[data-player]' \
         | htmlq \
-        | xq '.html.body.button | map({
+        | xq '.html.body.button | if type == "object" then [.] else . end | map({
                 url: "https:" + .["@data-player"],
                 title: "\(.["@data-provider-title"]) \(.["@data-translation-title"])"
             }) | {
