@@ -38,7 +38,15 @@ fi
 
 FILES=("${TITLES[@]/#/$TDIR/}")
 
-parallel -kqj "${PARLEVEL}" http --follow --timeout "$HTTPTIMEOUT" -o "{2}" GET "{1}" $REFERER ::: "${URLS[@]}" :::+ "${FILES[@]}"
+httpwrapper() {
+    if ! http "$@"; then
+        STATUS="$?"
+        echo "download: Error=$STATUS for $@" >&2
+    fi
+}
+export -f httpwrapper
+
+parallel -kqj "${PARLEVEL}" httpwrapper -F --timeout "$HTTPTIMEOUT" -o "{2}" GET "{1}" "$REFERER" ::: "${URLS[@]}" :::+ "${FILES[@]}"
 
 {
     <<< "${JSON[@]}" jq 'del(.list)'

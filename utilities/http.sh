@@ -20,5 +20,14 @@ if <<< "${JSON[@]}" jq -er '.useragent // empty' | read -r UA; then
     echo "http: Use User-Agent [$UA]" >&2
 fi
 
+if <<< "${JSON[@]}" jq -e .headers >/dev/null; then
+    <<< "${JSON[@]}" jq -r '.headers | to_entries | map("\(.key):\(.value)")' \
+        | readarray -O "${#ARGS}" -t ARGS
+fi
+
 echo "http: Download ${ARGS[0]}" >&2
-http --follow GET "${ARGS[@]}"
+if ! http --follow GET "${ARGS[@]}"; then
+    STATUS="$?"
+    echo "http: Failed ${ARGS[@]}" >&2
+    exit "$STATUS"
+fi

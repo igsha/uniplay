@@ -22,7 +22,7 @@ echo "mpv: Extract ${ARGS[@]}" >&2
 
 HTTP_HEADERS=
 if <<< "${JSON[@]}" jq -e .headers >/dev/null; then
-    <<< "${JSON[@]}" jq -r '(.headers | to_entries | map("\(.key): \(.value)") | join(",")) // empty' \
+    <<< "${JSON[@]}" jq -r '.headers | to_entries | map("\(.key): \(.value)") | join(",")' \
         | read -r HTTP_HEADERS
 fi
 

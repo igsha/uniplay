@@ -19,7 +19,7 @@ if [[ "$URL" =~ /vol[0-9]+/[0-9]+ ]]; then
         | tr "'" '"' \
         | jq --arg title "$TITLE" --arg dom "$DOMAIN" '{
             list: (to_entries | map(.value.[0] + (.value.[2] | split("?")[0]) as $url | {
-                url: "https:" + $url,
+                url: "https:" + ($url | sub("//bru\\."; "//cru.")),
                 title: (.key as $index | $url | split("/").[-1] | "\($index).\(.)")})),
             type: "images",
             referer: $dom,
