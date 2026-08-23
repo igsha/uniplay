@@ -19,7 +19,7 @@ if [[ "$URL" =~ /post/[0-9]+ ]]; then
             type: "images",
             pipeline: "film"
         }'
-elif [[ "$URL" =~ [^/]+://([^/]+)/tag/([^/]+)/?([0-9]+)?/? ]]; then
+elif [[ "$URL" =~ [^/]+://([^/]+)/tag/([^/]+)/?([0-9]+)? ]]; then
     DOMAIN="${BASH_REMATCH[1]}"
     TAGNAME="${BASH_REMATCH[2]}"
     PAGE="${BASH_REMATCH[3]}"

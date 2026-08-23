@@ -20,19 +20,20 @@ mapfile -t JSON
 [[ "${#ARGS[@]}" -gt 0 ]]
 echo "mpv: Extract ${ARGS[@]}" >&2
 
-HTTP_HEADERS=
+HTTP_HEADERS=()
 if <<< "${JSON[@]}" jq -e .headers >/dev/null; then
-    <<< "${JSON[@]}" jq -r '.headers | to_entries | map("\(.key): \(.value)") | join(",")' \
-        | read -r HTTP_HEADERS
+    <<< "${JSON[@]}" jq -r '.headers | to_entries[] | "\(.key): \(.value)"' \
+        | mapfile -t HTTP_HEADERS
 fi
 
 if <<< "${JSON[@]}" jq -r '.referer // empty' | read -r VALUE; then
-    HTTP_HEADERS+="${HTTP_HEADERS+,}Referer: $VALUE"
+    HTTP_HEADERS+="Referer: $VALUE"
 fi
 
-if [[ -n "$HTTP_HEADERS" ]]; then
-    echo "mpv: Use headers $HTTP_HEADERS" >&2
-    ARGS+=("--http-header-fields=${HTTP_HEADERS}")
+if [[ "${#HTTP_HEADERS[@]}" -ne 0 ]]; then
+    printf "mpv: Use header %s\n" "${HTTP_HEADERS[@]}" >&2
+    printf -v HEADERS "%s," "${HTTP_HEADERS[@]}"
+    ARGS+=("--http-header-fields=${HEADERS%,}")
 fi
 
 if <<< "${JSON[@]}" jq -r '.title // empty' | read -r TITLE; then
