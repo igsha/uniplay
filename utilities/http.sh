@@ -26,7 +26,7 @@ if <<< "${JSON[@]}" jq -e .headers >/dev/null; then
 fi
 
 echo "http: Download ${ARGS[0]}" >&2
-if ! http --follow GET "${ARGS[@]}"; then
+if ! http --check-status --follow GET "${ARGS[@]}"; then
     STATUS="$?"
     echo "http: Failed ${ARGS[@]}" >&2
     exit "$STATUS"
