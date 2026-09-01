@@ -18,7 +18,7 @@ mapfile -t JSON
     | readarray -t ARGS
 
 [[ "${#ARGS[@]}" -gt 0 ]]
-echo "mpv: Extract ${ARGS[@]}" >&2
+printf "mpv: Extract %s\n" "${ARGS[@]}" >&2
 
 HTTP_HEADERS=()
 if <<< "${JSON[@]}" jq -e .headers >/dev/null; then
