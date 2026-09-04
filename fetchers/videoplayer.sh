@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -eo pipefail
 shopt -s lastpipe
 
 which grep jq http jo xargs tee htmlq >/dev/null
@@ -13,11 +13,18 @@ if <<< "${JSON[@]}" jq -r '.referer // empty' | read -r REFERER; then
 fi
 
 echo "videoplayer: Download $URL" >&2
-http --follow GET "$URL" $REFERER \
+http -F GET "$URL" $REFERER \
     | mapfile HTML
 
-if <<< "${HTML[@]}" grep -Po "subtitles: \K\[[^\]]+\]" | jq -r '.[0] | .src' | read -r SUBURL; then
-    echo "videoplayer: Extract subs $SUBURL" >&2
+if <<< "${HTML[@]}" grep -Po "subtitles: \K\[[^\]]+\]" | jq -er '.[0] | .src' | read -r SUBURL; then
+    basename "$SUBURL" \
+        | read -r SUBSNAME
+    mktemp -t "uniplay.videoplayer.XXX.$SUBSNAME" \
+        | read -r SUBSFILE
+
+    echo "videoplayer: Download subs $SUBURL to $SUBSFILE" >&2
+    DOMAIN="${URL%/${URL#*//*/}}"
+    http -F GET "$SUBURL" referer:"$DOMAIN" -o "$SUBSFILE"
 fi
 
 <<< "${HTML[@]}" htmlq 'video > source' -a src \
@@ -25,5 +32,5 @@ fi
     | readarray -t URLS
 
 jo -a "${URLS[@]}" \
-    | jo list=:- -n title="$TITLE" subsurl="$SUBURL" \
+    | jo list=:- -n title="$TITLE" subsfile="$SUBSFILE" delete="$SUBSFILE" \
     | jq '.list |= map({url: ., title: .})'

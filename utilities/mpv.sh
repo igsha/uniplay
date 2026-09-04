@@ -57,6 +57,11 @@ if <<< "${JSON[@]}" jq -r '.subsurl // empty'| read -r SUBURL; then
     ARGS+=("--sub-file=$REGISTER")
 fi
 
+if <<< "${JSON[@]}" jq -r '.subsfile // empty'| read -r SUBSFILE; then
+    echo "mpv: Use subtitles $SUBSFILE" >&2
+    ARGS+=("--sub-file=$SUBSFILE")
+fi
+
 if <<< "${JSON[@]}" jq -r '(.chapters // [])[] | "[CHAPTER]\nTIMEBASE=1/1000\nSTART=\(.start)\nEND=\(.end)\ntitle=\(.text)\n"' \
     | readarray CHAPTERS && [[ "${#CHAPTERS[@]}" -gt 0 ]]; then
     mktemp -t uniplay.mpv.XXX \
