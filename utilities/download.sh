@@ -29,7 +29,9 @@ mktemp -d -t uniplay.download.XXX \
     | read -r TDIR
 echo "download: Download ${#URLS[@]} files to $TDIR" >&2
 echo "download: Use timeout=$HTTPTIMEOUT parallel=$PARLEVEL" >&2
-printf "download: Header %s\n" "${HEADERS[@]}" >&2
+if [[ "${#HEADERS[@]}" -gt 0 ]]; then
+    printf "download: Header %s\n" "${HEADERS[@]}" >&2
+fi
 
 <<< "${JSON[@]}" jq -r '(.list[] | .title) // empty' | readarray -t TITLES
 if [[ "${#TITLES[@]}" -eq 0 ]]; then

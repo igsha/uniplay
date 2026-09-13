@@ -12,9 +12,11 @@ http GET "$URL" \
 
 if [[ "$URL" =~ /vol[0-9]+/ ]]; then
     echo "seimanga: Extract images $URL" >&2
-    <<< "${HTML[@]}" htmlq .mobile-title-container \
-        | xq -r '.div | .strong.["#text"][0:100] + "... " + .span.["#text"]' \
+    <<< "${HTML[@]}" htmlq .vi-header-actions__name -t \
+        | xargs \
         | read -r TITLE
+
+    TITLE="${TITLE:0:100}"
 
     <<< "${HTML[@]}" grep -oP "readerInit.*\K\[\[.+\]\]" \
         | tr "'" '"' \
