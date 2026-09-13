@@ -15,24 +15,25 @@ DB="$XDG_CACHE_HOME/uniplay.db"
     | read -r TBLNAME
 
 echo "marksel: Find info [$TBLNAME] from db $DB" >&2
-sqlite3 "$DB" "CREATE TABLE IF NOT EXISTS '$TBLNAME' (hash CHAR(32) PRIMARY KEY);" >&2
-# Move `select ... where` into the loop below
-sqlite3 "$DB" "SELECT hash FROM '$TBLNAME';" \
-    | mapfile -t HASHES
+sqlite3 -batch "$DB" "CREATE TABLE IF NOT EXISTS '$TBLNAME' (hash CHAR(32) PRIMARY KEY);" >&2
 
 {
     <<< "${JSON[@]}" jq 'del(.list)'
     <<< "${JSON[@]}" jq --raw-output0 '.list[]' \
         | while IFS= read -r -d $'\0' JSN; do
-            MARK="(new)"
             if ! <<< "${JSN}" jq -r '.hash // empty' | read -r ITEMHASH; then
                 <<< "${JSN}" jq -j ".$HASHKEY" \
                     | md5sum \
                     | cut -c -32 \
                     | read -r ITEMHASH
             fi
-            if [[ " ${HASHES[*]} " =~ " $ITEMHASH " ]]; then
+
+            sqlite3 -batch "$DB" "SELECT EXISTS(SELECT 1 FROM '$TBLNAME' WHERE hash = '$ITEMHASH')" \
+                | read -r RESULT
+            if [[ "$RESULT" -eq 1 ]]; then
                 MARK="(seen)"
+            else
+                MARK="(new)"
             fi
 
             <<< "${JSN}" jq --arg mark "$MARK" --arg hash "$ITEMHASH" '.mark=$mark | .hash=$hash'
