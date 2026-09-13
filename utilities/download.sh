@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -eo pipefail
 shopt -s lastpipe
 
 which jq jo tr http parallel xargs basename > /dev/null
@@ -22,7 +22,7 @@ if ! <<< "${JSON[@]}" jq -r '.timeout // empty' | read -r HTTPTIMEOUT; then
     HTTPTIMEOUT=30
 fi
 
-<<< "${JSON[@]}" jq -r '.headers | to_entries | map("\(.key):\(.value)") | join("\n")' \
+<<< "${JSON[@]}" jq -r '.headers // empty | to_entries | map("\(.key):\(.value)") | join("\n")' \
     | mapfile -t -O "${#HEADERS[@]}" HEADERS
 
 mktemp -d -t uniplay.download.XXX \

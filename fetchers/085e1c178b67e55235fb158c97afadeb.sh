@@ -11,12 +11,14 @@ mapfile JSON
 echo "085e1c178b67e55235fb158c97afadeb: Extract $URL" >&2
 http GET "$URL" \
     | htmlq '.post_content.cf img' -a data-src \
-    | sed -e "s;^;${DOMAIN};g" -e '/.*\.gif$/d' \
-    | jo -a \
-    | jq --arg dom "$DOMAIN" '{
-        list: map({url: ., title: .}),
-        hashkey: "url",
-        referer: $dom,
-        parallel: 1,
-        type: "images",
-        pipeline: "manga"}'
+    | jq -R --arg dom "$DOMAIN" '[inputs] | map(select(. | test(".gif$") | not) | {
+            url: $dom + .,
+            title: (. | split("/")[-1])
+        }) | {
+            list: .,
+            hashkey: "url",
+            referer: $dom,
+            parallel: 1,
+            type: "images",
+            pipeline: "manga"
+        }'
