@@ -17,6 +17,7 @@
     devShells.x86_64-linux = {
       default = pkgs.mkShell {
         inputsFrom = [ self.packages.x86_64-linux.uniplay ];
+        CURL_CA_BUNDLE="/etc/ssl/certs/ca-bundle.crt";
       };
     };
   };

@@ -2,7 +2,7 @@
   which, gnugrep, gnused, gawk, coreutils, findutils, iconv,
   jq, jo, ripgrep, httpie, htmlq, python3Packages, parallel, fzf,
   sqlite, imagemagick, pdfcpu, pandoc, mpv, xdg-utils, gost,
-  brotli, wkhtmltopdf, typst
+  brotli, wkhtmltopdf, typst, pup
 }:
 
 let
@@ -32,6 +32,7 @@ let
     brotli
     wkhtmltopdf
     typst
+    pup
   ];
 in stdenv.mkDerivation {
   pname = "uniplay";
