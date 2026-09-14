@@ -2,7 +2,7 @@
 set -e
 shopt -s lastpipe
 
-which jq jo htmlq xq sed >/dev/null
+which jq jo htmlq xq sed pup >/dev/null
 
 jq -r '.url, (.url | split("/")[:3] | join("/"))' \
     | { read -r URL; read -r DOMAIN; }
@@ -14,25 +14,40 @@ fi
 if [[ "$URL" =~ /chapters/ ]]; then
     echo "manga-shi: List chapters $URL" >&2
     http --follow GET "$URL" \
-        | htmlq \
-        | xq --arg base "$DOMAIN" '.html.body
-            | if (.div != null) then .a += [{"@href": .div.["@hx-get"], span: [{span: "###next###"}]}] end | {
-                list: .a | map({url: $base + .["@href"], title: .span[0].span}),
+        | mapfile HTML
+
+    <<< "${HTML[@]}" pup -p '#page-content nav json{}' \
+        | jq -r '.[1].children[-1].href' \
+        | read -r NEXTURL
+
+    <<< "${HTML[@]}" pup -p '#page-content #chapters-list a json{}' \
+        | jq --arg dom "$DOMAIN" --arg nexurl "$NEXTURL" --arg url "${URL%\?*}" 'map({
+                url: $dom + .href,
+                title: .children[0].children[1].text
+            }) + if $nexurl != "null" then [{
+                url: $url + $nexurl,
+                title: "###next###"
+            }] else [] end | {
+                list: .,
                 hashkey: "url",
                 type: "selectable",
                 title: "manga-shi"
             }'
-elif [[ "$URL" =~ /manga/[^/]+/glava- ]]; then
+elif [[ "$URL" =~ /manga/[^/]+/tom-[0-9]+/glava-[0-9]+ ]]; then
     echo "manga-shi: Download chapter $URL" >&2
 
     http --follow GET "$URL" \
-        | htmlq '.reader-pages .reader-page img' \
-        | sed -e 's;\(<img.*\)>;\1/>;g' -e '1i<div>' -e '$a</div>' \
-        | xq --arg base "$DOMAIN" '.div.img | {
-            list: map({url: (.["@data-src"] // .["@src"] | $base + .), title}),
-            parallel: 4,
-            type: "images",
-            pipeline: "manga"}'
+        | pup '.reader-pages .reader-page img json{}' \
+        | jq --arg base "$DOMAIN" '.[0].title as $title | map($base + (.["data-src"] // .src) | {
+                url: .,
+                title: (. | split("/")[-1])
+            }) | {
+                list: .,
+                parallel: 4,
+                title: $title,
+                type: "images",
+                pipeline: "manga"
+            }'
 else
     echo "manga-shi: Wrong url $URL" >&2
     exit 1
