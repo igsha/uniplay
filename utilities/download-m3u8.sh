@@ -6,7 +6,6 @@ which jq >/dev/null
 
 mapfile JSON
 <<< "${JSON[@]}" "$UNIPLAY" m3u8 \
-    | jq '.parallel=4' \
     | "$UNIPLAY" download \
     | mapfile JSONFILES
 

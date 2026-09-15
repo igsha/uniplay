@@ -21,11 +21,11 @@ if <<< "${JSON[@]}" jq -er '.useragent // empty' | read -r UA; then
 fi
 
 if <<< "${JSON[@]}" jq -e .headers >/dev/null; then
-    <<< "${JSON[@]}" jq -r '.headers | to_entries | map("\(.key):\(.value)")' \
+    <<< "${JSON[@]}" jq -r '.headers | to_entries[] | "\(.key):\(.value)"' \
         | readarray -O "${#ARGS}" -t ARGS
 fi
 
-echo "http: Download ${ARGS[0]}" >&2
+printf "http: Download args %s\n" "${ARGS[@]}" >&2
 if ! http --check-status --follow GET "${ARGS[@]}"; then
     STATUS="$?"
     echo "http: Failed ${ARGS[@]}" >&2

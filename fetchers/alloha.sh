@@ -2,7 +2,7 @@
 set -eo pipefail
 shopt -s lastpipe
 
-which jq htmlq rg >/dev/null
+which http jq jo htmlq rg base64 >/dev/null
 
 jq -r '.url, (.url | split("/")[:3] | join("/"))' \
     | { read -r URL; read -r DOMAIN; }
@@ -81,19 +81,13 @@ if [[ "$URL" =~ translation=([^/&]+) ]]; then
                 | jq -r '.[0].value' \
                 | read -r HLSURL
 
-            echo "alloha: Extract inner hls from $HLSURL" >&2
-            http GET "$HLSURL" "origin:$DOMAIN" \
-                | grep -v '#' \
-                | mapfile -t HLSPART
-
-            HLSURL="${HLSURL/master.m3u8/${HLSPART[0]}}"
-
             printf "\\\\\\\x%s" "${GUARDHEX[@]}" \
                 | xargs printf "%b" \
                 | base64 -w0 \
                 | mapfile GUARD
 
             echo "alloha: Guard ${GUARD[@]}" >&2
+            echo "alloha: Extract hls $HLSURL" >&2
             jo "headers[origin]=$DOMAIN" "headers[accepts-controls]=$SALT" "headers[authorizations]=Bearer ${GUARD[@]}" url="$HLSURL" type=video title="$TITLE - $SEASON-$EPISODE" \
                 | "$UNIPLAY" download-m3u8
         else

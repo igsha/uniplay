@@ -6,10 +6,7 @@ which jq jo xargs >/dev/null
 
 mapfile JSON
 if <<< "${JSON[@]}" jq -er '.url // empty' | read -r URL; then
-    <<< "${JSON[@]}" jq -r '.headers | to_entries | map("\(.key):\(.value)") | join("\n")' \
-        | mapfile HEADERS
-
-    http GET "$URL" ${HEADERS:+"${HEADERS[@]}"} \
+    <<< "${JSON[@]}" "$UNIPLAY" http \
         | mapfile -t CONTENT
 
     dirname "$URL" \
@@ -24,43 +21,72 @@ else
     exit 1
 fi
 
-for LINEDATA in "${CONTENT[@]}"; do
-    if [[ "$LINEDATA" =~ ^#EXTINF:[^,]+,?(.*) ]]; then
-        TITLE="${BASH_REMATCH[1]}"
-    elif [[ "$LINEDATA" =~ ^#EXT-X-MAP:URI=\"([^\"]+) ]]; then
-        LINEDATA="${BASH_REMATCH[1]}"
-        basename "$LINEDATA" \
-            | read -r NAME
-        if [[ "$LINEDATA" =~ ^[^/]+://[^/]+ ]]; then
-            jo url="$LINEDATA" title="$NAME"
-        elif [[ "$ISURL" == true ]]; then
-            jo url="$ITEMDIR/$LINEDATA" title="$NAME"
-        else
-            jo file="$LINEDATA" title="$NAME"
-        fi
-    elif [[ ! "$LINEDATA" =~ ^# ]]; then
-        TITLE="${TITLE:-$LINEDATA}"
-        if [[ "$LINEDATA" =~ ^[^/]+://[^/]+ ]]; then
-            jo url="$LINEDATA" -n title="$TITLE"
-        elif [[ "$ISURL" == true ]]; then
-            jo url="$ITEMDIR/$LINEDATA" -n title="$TITLE"
-        else
-            jo file="$LINEDATA" -n title="$TITLE"
-        fi
+printf "%s\n" "${CONTENT[@]}" \
+    | awk '/#EXT-X-STREAM-INF/{getline; print}' \
+    | mapfile -t INDEXURL
 
-        unset TITLE
-    fi
-done \
-    | jq -s --arg isurl "$ISURL" '{
-            list: .,
-            title: "m3u8",
-            hashkey: if $isurl then "url" else "file" end,
-            type: "selectable",
-        }' \
-    | mapfile RESULTJSON
+if [[ "${#INDEXURL[@]}" -eq 0 ]]; then
+    echo "m3u8: Process m3u8 index" >&2
+    NEWCONTENT=()
+    JSONARR=()
+    for LINEDATA in "${CONTENT[@]}"; do
+        if [[ "$LINEDATA" =~ ^#EXTINF:[^,]+,?(.*) ]]; then
+            TITLE="${BASH_REMATCH[1]}"
+            NEWCONTENT+=("$LINEDATA")
+        elif [[ "$LINEDATA" =~ ^(#EXT-X-MAP:URI=\")([^\"]+)(.*) ]]; then
+            FIRSTPART="${BASH_REMATCH[1]}"
+            LINEDATA="${BASH_REMATCH[2]}"
+            LASTPART="${BASH_REMATCH[3]}"
+            basename "$LINEDATA" \
+                | read -r NAME
 
-{
-    printf "%s\n" "${CONTENT[@]}" \
-        | jq -sR '{content: .}'
-    echo "${JSON[@]}${RESULTJSON[@]}"
-} | jq -s 'add | del(.url,.file)'
+            NAME="${NAME%\?*}"
+
+            if [[ "$LINEDATA" =~ ^[^/]+://[^/]+ ]]; then
+                jo url="$LINEDATA" title="$NAME"
+            elif [[ "$ISURL" == true ]]; then
+                jo url="$ITEMDIR/$LINEDATA" title="$NAME"
+            else
+                jo file="$LINEDATA" title="$NAME"
+            fi \
+                | mapfile -O "${#JSONARR[@]}" JSONARR
+
+            NEWCONTENT+=("$FIRSTPART$NAME$LASTPART")
+        elif [[ ! "$LINEDATA" =~ ^# ]]; then
+            TITLE="${TITLE:-$LINEDATA}"
+            TITLE="${TITLE%\?*}"
+            if [[ "$LINEDATA" =~ ^[^/]+://[^/]+ ]]; then
+                jo url="$LINEDATA" -n title="$TITLE"
+            elif [[ "$ISURL" == true ]]; then
+                jo url="$ITEMDIR/$LINEDATA" -n title="$TITLE"
+            else
+                jo file="$LINEDATA" -n title="$TITLE"
+            fi \
+                | mapfile -O "${#JSONARR[@]}" JSONARR
+
+            NEWCONTENT+=("$TITLE")
+            unset TITLE
+        else
+            NEWCONTENT+=("$LINEDATA")
+        fi
+    done
+
+    {
+        printf "%s\n" "${NEWCONTENT[@]}" \
+            | jq -sR '{content: .}'
+        echo "${JSON[@]}"
+        <<< "${JSONARR[@]}" jq -s --arg isurl "$ISURL" '{
+                list: .,
+                title: "m3u8",
+                hashkey: if $isurl then "url" else "file" end,
+                type: "selectable",
+            }'
+    } | jq -s 'add | del(.url,.file)'
+elif [[ "${#INDEXURL[@]}" -eq 1 ]]; then
+    echo "m3u8: Read index ${INDEXURL[0]}" >&2
+    <<< "${JSON[@]}" jq --arg url "$ITEMDIR/${INDEXURL[0]}" '.url=$url' \
+        | "$UNIPLAY" m3u8
+else
+    printf "m3u8: Unsupported several indexes %s\n" "${INDEXURL[@]}" >&2
+    exit 1
+fi
