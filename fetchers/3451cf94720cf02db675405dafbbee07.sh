@@ -2,7 +2,7 @@
 set -e
 shopt -s lastpipe
 
-which jq jo http tee sha1sum cut tee xargs awk >/dev/null
+which jq http tee sha1sum cut xargs >/dev/null
 
 mapfile -t JSON
 <<< "${JSON[@]}" jq -r '.url, (.url | split("/")[2] | split(".")[-2:] | join("."))' \
@@ -12,13 +12,6 @@ if [[ "$URL" =~ tags=([^&]+)(.*) || "$URL" =~ /videos ]]; then
     TAGS="${BASH_REMATCH[1]}"
     RESTPARAMS="${BASH_REMATCH[2]}"
     echo "3451cf94720cf02db675405dafbbee07: List $URL" >&2
-
-    if [[ "$URL" =~ proxy=([^&]+) ]]; then
-        USE_PROXY="${BASH_REMATCH[1]}"
-        echo "3451cf94720cf02db675405dafbbee07: Save proxy=$USE_PROXY from url" >&2
-    elif <<< "${JSON[@]}" jq -r '.proxy // empty' | read -r JSON_PROXY; then
-        USE_PROXY="$JSON_PROXY"
-    fi
 
     PAGENUM=0
     if [[ "$URL" =~ page=([0-9]+) ]]; then
@@ -43,9 +36,7 @@ if [[ "$URL" =~ tags=([^&]+)(.*) || "$URL" =~ /videos ]]; then
             }],
             hashkey: "url",
             type: "selectable",
-            title: "3451cf94720cf02db675405dafbbee07"}' \
-        | jq --arg proxy "$USE_PROXY" 'if $proxy != "" then .proxy=$proxy end'
-
+            title: "3451cf94720cf02db675405dafbbee07"}'
 elif [[ "$URL" =~ /video/([A-Za-z0-9]+) ]]; then
     URL="https://apiq.${SERVER}/video/${BASH_REMATCH[1]}"
 
@@ -69,21 +60,8 @@ elif [[ "$URL" =~ /video/([A-Za-z0-9]+) ]]; then
         | jq -r '.[] | select(.name == "Source") | .src.view | sub("^//"; "https://")' \
         | read -r URL
 
-    echo "3451cf94720cf02db675405dafbbee07: Trying $URL" >&2
-    if ! http -hq --check-status --timeout=4.4 GET "$URL" 2>/dev/null; then
-        SERVERS=(pela silverwolf mikoto)
-        for ((i=0; i<${#SERVERS[@]}; ++i)); do
-            <<< "$URL" awk -F/ 'gsub($3,"'${SERVERS[$i]}.${SERVER}'",$0)' \
-                | read -r URL
-
-            echo "3451cf94720cf02db675405dafbbee07: Trying $URL" >&2
-            if http -hq --check-status --timeout=4.1 GET "$URL" 2>/dev/null; then
-                break
-            fi
-        done
-    fi
-
-    { printf "%s" "${JSON[@]}"; jo url="$URL" title="$TITLE" type=video; } | jq -s add
+    echo "3451cf94720cf02db675405dafbbee07: Extract video url $URL" >&2
+    <<< "${JSON[@]}" jq --arg url "$URL" --arg title "$TITLE" '.url=$url | .title=$title | .type="video"'
 else
     echo "3451cf94720cf02db675405dafbbee07: Unsupported url $URL" >&2
     exit 1
