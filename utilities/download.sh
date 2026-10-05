@@ -42,6 +42,8 @@ if [[ "${#TITLES[@]}" -eq 0 ]]; then
         | readarray -t TITLES
 fi
 
+# remove all url parameters after ?param=...
+TITLES=("${TITLES[@]%\?*}")
 FILES=("${TITLES[@]/#/$TDIR/}")
 
 httpwrapper() {

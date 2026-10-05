@@ -40,8 +40,6 @@ if [[ "${#INDEXURL[@]}" -eq 0 ]]; then
             basename "$LINEDATA" \
                 | read -r NAME
 
-            NAME="${NAME%\?*}"
-
             if [[ "$LINEDATA" =~ ^[^/]+://[^/]+ ]]; then
                 jo url="$LINEDATA" title="$NAME"
             elif [[ "$ISURL" == true ]]; then
@@ -54,7 +52,6 @@ if [[ "${#INDEXURL[@]}" -eq 0 ]]; then
             NEWCONTENT+=("$FIRSTPART$NAME$LASTPART")
         elif [[ ! "$LINEDATA" =~ ^# ]]; then
             TITLE="${TITLE:-$LINEDATA}"
-            TITLE="${TITLE%\?*}"
             if [[ "$LINEDATA" =~ ^[^/]+://[^/]+ ]]; then
                 jo url="$LINEDATA" -n title="$TITLE"
             elif [[ "$ISURL" == true ]]; then
