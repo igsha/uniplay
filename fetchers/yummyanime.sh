@@ -4,58 +4,45 @@ shopt -s lastpipe
 
 which jq http pup >/dev/null
 
-jq -r '.url, (.url | split("/")[0:3] | join("/"))' \
-    | { read -r URL; read -r DOMAIN; }
+jq -r '.url, (.url | split("/")[0:3] | join("/")), .referer' \
+    | { read -r URL; read -r DOMAIN; read -r REFERER; }
 
-if [[ "$URL" =~ //[^/]+/[0-9]+-.*\.html ]]; then
+if [[ "$URL" =~ //[^/]+/([0-9]+)-.*\.html ]]; then
+    ID="${BASH_REMATCH[1]}"
     echo "yummyanime: Find players in $URL" >&2
     http GET "$URL" \
-        | pup -p '.cvh, .xfplayer json{}' \
-        | mapfile JSON
-
-    URLS=()
-    if <<< "${JSON[@]}" jq -e '.[] | select(.["data-pub"])' >/dev/null; then
-        echo "yummyanime: Extract CVH player" >&2
-        <<< "${JSON[@]}" jq -r '.[] | select(.["data-pub"]) |
-                "https://plapi.cdnvideohub.com/api/v1/player/sv/playlist?pub=\(.["data-pub"])&aggr=mali&id=\(.["data-mali"])"' \
-            | mapfile -t -O 0 URLS
-    fi
-
-    <<< "${JSON[@]}" jq -r '.[] | select(.["data-params"]) |
-            "https://yummyanime.tv/engine/ajax/controller.php?" + .["data-params"]' \
-        | mapfile -t CONTROLLER_URLS
-
-    for URL in "${CONTROLLER_URLS[@]}"; do
-        echo "yummyanime: Extract player by $URL" >&2
-        http GET "$URL" \
-            | jq -r .data \
-            | mapfile -O "${#URLS[@]}" -t URLS
-    done
-
-    printf "%s\n" "${URLS[@]}" \
-        | jq -Rn '[inputs] | map({
-                url: .,
-                title: .
+        | pup -p '[data-player-slot] json{}' \
+        | jq --arg id "$ID" 'map({
+                url: "https://yummyanime.tv/engine/ajax/controller.php?mod=player&id=\($id)&slot=\(.["data-player-slot"])",
+                title: .["data-player-title"]
             }) | {
                 list: .,
-                title: "yummyanime",
+                referer: "https://yummyanime.tv/engine/ajax/controller.php",
                 hashkey: "url",
                 type: "selectable"
             }'
-else
-    echo "yummyanime: List films $URL" >&2
+elif [[ "$URL" =~ /engine/ajax/controller.php ]]; then
+    echo "yummyanime: Extract players data from $URL" >&2
+    http GET "$URL" "referer:$REFERER" \
+        | mapfile JSON
+
+    if <<< "${JSON[@]}" jq -e '.data.kind == "cvh"' >/dev/null; then
+        <<< "${JSON[@]}" jq '.data | {
+                url: "https://plapi.cdnvideohub.com/api/v1/player/sv/playlist?pub=\(.pub_id)&aggr=\(.aggregator)&id=\(.title_id)"
+            }' \
+        | "$UNIPLAY" auto
+    elif <<< "${JSON[@]}" jq -e '.data.agp == true' >/dev/null; then
+        <<< "${JSON[@]}" jq '.data | {url: .src}' \
+        | "$UNIPLAY" yummyanime
+    else
+        echo "yummyanime: Unknown player ${JSON[@]}" >&2
+        exit 1
+    fi
+elif [[ "$URL" =~ /embed/agp ]]; then
+    echo "yummyanime: List AGP $URL" >&2
     http GET "$URL" \
-        | pup '#dle-content .movie-item__link, #dle-content .pagination json{}' \
-        | jq --arg dom "$DOMAIN" 'map((select(.id == "pagination") | {
-            url: .children[0].children[1].href,
-            title: "###next###"
-        }) // (select(.href) | {
-            url: $dom + .href,
-            title: (.children[-1] | .title // .children[-1].title)
-        })) | {
-            list: .,
-            title: "yummyanime",
-            hashkey: "url",
-            type: "selectable"
-        }'
+        | pup -p 'script:contains("function") text{}' \
+        | grep -Po '"kodikSerial":\s"\K[^"]+' \
+        | jq -R '{url: .}' \
+        | "$UNIPLAY" auto
 fi
