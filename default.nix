@@ -36,7 +36,7 @@ let
   ];
 in stdenv.mkDerivation {
   pname = "uniplay";
-  version = "0.3.18";
+  version = "0.3.19";
 
   src = ./.;
 

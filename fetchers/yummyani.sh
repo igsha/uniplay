@@ -16,18 +16,17 @@ if [[ "$URL" =~ dubbing_code=([^\&\?]+)[\&\?]anime_id=([0-9]+)([\&]episode=([0-9
 
     echo "yummyani: CVH fetcher $URL" >&2
     http --follow GET "$URL" \
-        | htmlq 'script[type="module"]' -a src \
+        | pup -p 'script#vite-legacy-entry attr{data-src}' \
         | xargs printf "%s%s\n" "$DOMAIN" \
         | read -r URL
 
     echo "yummyani: Extract CVH asset $URL" >&2
     http --follow GET "$URL" \
-        | brotli -d \
         | rg --multiline-dotall -UP '"data-aggregator":\s*"([^"]+)".*"data-publisher-id":\s*(\d+)' -or $'$1\n$2' \
         | { read -r AGGR; read -r PUB; }
 
-    echo "yummyani: aggr=$AGGR pub=$PUB id=$ID dubbig_code=$DUBBIG_CODE episode=$EPISODE" >&2
-    URL="https://plapi.cdnvideohub.com/api/v1/player/sv/playlist?pub=$PUB&aggr=$AGGR&id=$ID&dubbing_code=$DUBBIG_CODE&episode=$EPISODE"
+    echo "yummyani: aggr=$AGGR pub=$PUB id=$ID" >&2
+    URL="https://plapi.cdnvideohub.com/api/v1/player/sv/playlist?pub=$PUB&aggr=$AGGR&id=$ID"
     echo "yummyani: Extract $URL" >&2
     exec "$UNIPLAY" cdnvideohub "$URL"
 elif [[ "$URL" =~ /api/.+dubbing=([^\&]+) ]]; then

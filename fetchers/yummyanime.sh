@@ -26,14 +26,17 @@ elif [[ "$URL" =~ /engine/ajax/controller.php ]]; then
     http GET "$URL" "referer:$REFERER" \
         | mapfile JSON
 
+    printf "%s\n" "${JSON[@]}" >&2
+
     if <<< "${JSON[@]}" jq -e '.data.kind == "cvh"' >/dev/null; then
         <<< "${JSON[@]}" jq '.data | {
                 url: "https://plapi.cdnvideohub.com/api/v1/player/sv/playlist?pub=\(.pub_id)&aggr=\(.aggregator)&id=\(.title_id)"
-            }' \
-        | "$UNIPLAY" auto
+            }'
     elif <<< "${JSON[@]}" jq -e '.data.agp == true' >/dev/null; then
         <<< "${JSON[@]}" jq '.data | {url: .src}' \
         | "$UNIPLAY" yummyanime
+    elif <<< "${JSON[@]}" jq -e '.data.kind == "iframe"' >/dev/null; then
+        <<< "${JSON[@]}" jq '.data | {url: .src}'
     else
         echo "yummyanime: Unknown player ${JSON[@]}" >&2
         exit 1
@@ -43,6 +46,5 @@ elif [[ "$URL" =~ /embed/agp ]]; then
     http GET "$URL" \
         | pup -p 'script:contains("function") text{}' \
         | grep -Po '"kodikSerial":\s"\K[^"]+' \
-        | jq -R '{url: .}' \
-        | "$UNIPLAY" auto
+        | jq -R '{url: .}'
 fi
