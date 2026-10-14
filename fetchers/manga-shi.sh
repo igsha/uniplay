@@ -23,7 +23,7 @@ if [[ "$URL" =~ /chapters/ ]]; then
     <<< "${HTML[@]}" pup -p '#page-content #chapters-list a json{}' \
         | jq --arg dom "$DOMAIN" --arg nexurl "$NEXTURL" --arg url "${URL%\?*}" 'map({
                 url: $dom + .href,
-                title: .children[0].children[1].text
+                title: .children[0].children[0].text
             }) + if $nexurl != "null" then [{
                 url: $url + $nexurl,
                 title: "###next###"
@@ -33,7 +33,7 @@ if [[ "$URL" =~ /chapters/ ]]; then
                 type: "selectable",
                 title: "manga-shi"
             }'
-elif [[ "$URL" =~ /manga/[^/]+/tom-[0-9]+/glava-[0-9]+ ]]; then
+elif [[ "$URL" =~ /manga/[^/]+/(tom-[0-9]+/)?glava-[0-9]+ ]]; then
     echo "manga-shi: Download chapter $URL" >&2
 
     http --follow GET "$URL" \
