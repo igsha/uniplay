@@ -26,17 +26,17 @@ if [[ "$URL" =~ viewkey=[0-9a-z]+ ]]; then
                 },
                 parallel: 1
             }'
-elif [[ "$URL" =~ /video/?\?c=[0-9]+ ]]; then
+elif [[ "$URL" =~ /video/?\?c=[0-9]+ || "$URL" =~ /channels || "$URL" =~ /video/search ]]; then
     echo "bed2c906d99a6f552052da70c0d0dabb: Extract next url from $URL" >&2
-    <<< "${HTML[@]}" pup -p 'link[rel="next"] attr{href}' \
+    <<< "${HTML[@]}" pup -p '.page_next a attr{href}' \
         | read -r NEXTURL
 
     echo "bed2c906d99a6f552052da70c0d0dabb: List views for $URL" >&2
-    <<< "${HTML[@]}" pup 'ul#videoCategory .pcVideoListItem .phimage a json{}' \
+    <<< "${HTML[@]}" pup 'ul[id^="video"] .pcVideoListItem .phimage a json{}' \
         | jq --arg dom "$DOMAIN" --arg nexturl "$NEXTURL" 'map({
                 url: $dom + .href,
                 title
-            }) + [{url: $nexturl, title: "###next###"}] | {
+            }) + [{url: $dom + $nexturl, title: "###next###"}] | {
                 list: .,
                 title: "bed2c906d99a6f552052da70c0d0dabb",
                 hashkey: "url",
