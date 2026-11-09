@@ -1,19 +1,71 @@
-#!/usr/bin/env bash
-set -euo pipefail
-shopt -s lastpipe
+#!/usr/bin/env lua
 
+argparse = require("argparse")
+md5 = require("md5")
+lfs = require("lfs")
+
+local function update_package_path(scriptpath)
+    if not scriptpath:match("^/") then
+        scriptpath = lfs.currentdir() .. scriptpath:sub(2)
+    end
+
+    for _ = 1, 5 do
+        local target = lfs.symlinkattributes(scriptpath, "target")
+        if not target then
+            break
+        end
+
+        if not target:match("^/") then
+            local linkdir = scriptpath:match("(.*/)") or "./"
+            scriptpath = linkdir .. target
+        else
+            scriptpath = target
+        end
+    end
+
+    local scriptdir = scriptpath:match("(.*/)") or "./"
+
+    for _, name in pairs({"fetchers", "utilities"}) do
+        package.path = package.path
+            .. (";%s/uniplay/%s/?.lua"):format(os.getenv("XDG_CONFIG_HOME"), name)
+            .. (";%s/../share/uniplay/%s/?.lua"):format(scriptdir, name)
+            .. (";%s/%s/?.lua"):format(scriptdir, name)
+    end
+end
+
+local parser = argparse("s-uniplay", "Universal player")
+parser:argument("fetcher", "fetcher to use"):default("auto")
+parser:argument("url", "url to fetch"):args("?")
+parser:flag("-v --version", "print version")
+
+local args = parser:parse()
+if args.version then
+    print("Uniplay: version 1.0")
+    return
+end
+
+update_package_path(arg[0])
+
+local hfetcher = md5.sumhexa(args.fetcher)
+local fetcherpath = package.searchpath(args.fetcher, package.path)
+if not fetcherpath then
+    print("Try to execute fetcher", args.fetcher, hfetcher)
+
+else
+    local fetcher = require(fetcherpath)
+    fetcher.fetch()
+end
+
+--[==[
 which awk md5sum jo jq > /dev/null
 
 realpath "$0" | read -r UNIPLAY
 dirname "$UNIPLAY" | read -r SCRIPT_DIR
 UNIPLAYDIRS=(\
     "$XDG_CONFIG_HOME/uniplay/fetchers" \
-    "$XDG_CONFIG_HOME/uniplay/fetchers" \
     "$XDG_CONFIG_HOME/uniplay/utilities" \
     "$SCRIPT_DIR/../share/uniplay/fetchers" \
-    "$SCRIPT_DIR/../share/uniplay/fetchers" \
     "$SCRIPT_DIR/../share/uniplay/utilities" \
-    "$SCRIPT_DIR/fetchers" \
     "$SCRIPT_DIR/fetchers" \
     "$SCRIPT_DIR/utilities" \
 )
@@ -58,3 +110,4 @@ if <<< "${JSON[@]}" jq -r '.delete // empty' | read -r TMPFILE; then
     echo "uniplay: Delete temporary $TMPFILE" >&2
     rm -r "$TMPFILE"
 fi
+--]==]

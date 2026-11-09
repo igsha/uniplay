@@ -2,10 +2,38 @@
   which, gnugrep, gnused, gawk, coreutils, findutils, iconv,
   jq, jo, ripgrep, httpie, htmlq, python3Packages, parallel, fzf,
   sqlite, imagemagick, pdfcpu, pandoc, mpv, xdg-utils, gost,
-  brotli, wkhtmltopdf, typst, pup
+  brotli, wkhtmltopdf, typst, pup, lua5_4, fetchurl, fetchFromGitHub
 }:
 
 let
+  lua = lua5_4.override {
+    packageOverrides = luaself: luaprev: {
+      lusoup = luaprev.buildLuarocksPackage {
+        pname = "lusoup";
+        version = "0.1.0-1";
+        src = fetchFromGitHub {
+          owner = "valhalla803";
+          repo = "lusoup";
+          rev = "v0.1.0";
+          hash = "sha256-ZKfGEtTzjj/wjNH2kDeZOsEhBMFqg9S6bDxMq9X0AkA=";
+        };
+      };
+      lureq = luaprev.buildLuarocksPackage {
+        pname = "lureq";
+        version = "0.1.1-1";
+        src = fetchFromGitHub {
+          owner = "valhalla803";
+          repo = "lureq";
+          rev = "v0.1.1";
+          hash = "sha256-HzmFLNP2pB9cpxyn0zzc3J5BR12SbIAUq0+GpZpCqio=";
+        };
+        propagatedBuildInputs = with luaprev; [
+          luasocket
+          luasec
+        ];
+      };
+    };
+  };
   deps = [
     which
     gnugrep
@@ -33,6 +61,14 @@ let
     wkhtmltopdf
     typst
     pup
+    (lua.withPackages (ps: with ps; [
+      json
+      lusoup
+      lureq
+      argparse
+      md5
+      luafilesystem
+    ]))
   ];
 in stdenv.mkDerivation {
   pname = "uniplay";
