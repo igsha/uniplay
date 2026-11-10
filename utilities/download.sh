@@ -2,7 +2,7 @@
 set -eo pipefail
 shopt -s lastpipe
 
-which jq jo tr http parallel xargs basename > /dev/null
+which jq jo tr http parallel xargs basename nproc > /dev/null
 
 mapfile -t JSON
 <<< "${JSON[@]}" jq -r '.list[] | .url' | readarray -t URLS
@@ -16,7 +16,7 @@ if <<< "${JSON[@]}" jq -r '.referer // empty' | read -r REFERER; then
     HEADERS+=("referer:$REFERER")
 fi
 if ! <<< "${JSON[@]}" jq -r '.parallel // empty' | read -r PARLEVEL; then
-    PARLEVEL=0
+    PARLEVEL=$(nproc)
 fi
 if ! <<< "${JSON[@]}" jq -r '.timeout // empty' | read -r HTTPTIMEOUT; then
     HTTPTIMEOUT=30
