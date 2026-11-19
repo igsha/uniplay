@@ -4,7 +4,7 @@ argparse = require("argparse")
 md5 = require("md5")
 lfs = require("lfs")
 
-local function update_package_path(scriptpath)
+local function get_package_path(scriptpath)
     if not scriptpath:match("^/") then
         scriptpath = lfs.currentdir() .. scriptpath:sub(2)
     end
@@ -23,14 +23,17 @@ local function update_package_path(scriptpath)
         end
     end
 
-    local scriptdir = scriptpath:match("(.*/)") or "./"
-
+    local scriptdir = scriptpath:match("(.*)/") or "."
+    local searchpaths = {}
     for _, name in pairs({"fetchers", "utilities"}) do
-        package.path = package.path
-            .. (";%s/uniplay/%s/?.lua"):format(os.getenv("XDG_CONFIG_HOME"), name)
-            .. (";%s/../share/uniplay/%s/?.lua"):format(scriptdir, name)
-            .. (";%s/%s/?.lua"):format(scriptdir, name)
+        for _, ext in pairs({"lua", "sh"}) do
+            table.insert(searchpaths, ("%s/uniplay/%s/?.%s"):format(os.getenv("XDG_CONFIG_HOME"), name, ext))
+            table.insert(searchpaths, ("%s/../share/uniplay/%s/?.%s"):format(scriptdir, name, ext))
+            table.insert(searchpaths, ("%s/%s/?.%s"):format(scriptdir, name, ext))
+        end
     end
+
+    return searchpaths
 end
 
 local parser = argparse("s-uniplay", "Universal player")
@@ -44,18 +47,22 @@ if args.version then
     return
 end
 
-update_package_path(arg[0])
+package.path = package.path .. ";" .. table.concat(get_package_path(arg[0]), ";")
+
+print("path:", package.path)
 
 local hfetcher = md5.sumhexa(args.fetcher)
 local fetcherpath = package.searchpath(args.fetcher, package.path)
-if not fetcherpath then
+print("Found fetcher", fetcherpath)
+return
+--[[if not fetcherpath then
     print("Try to execute fetcher", args.fetcher, hfetcher)
 
 else
     local fetcher = require(fetcherpath)
     fetcher.fetch()
 end
-
+--]]
 --[==[
 which awk md5sum jo jq > /dev/null
 
