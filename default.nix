@@ -62,12 +62,13 @@ let
     typst
     pup
     (lua.withPackages (ps: with ps; [
-      json
+      cjson
       lusoup
       lureq
       argparse
       md5
       luafilesystem
+      luv
     ]))
   ];
 in stdenv.mkDerivation {

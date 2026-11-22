@@ -3,57 +3,114 @@
 argparse = require("argparse")
 md5 = require("md5")
 lfs = require("lfs")
+json = require("cjson")
+uv = require("luv")
 
-local function get_package_path(scriptpath)
-    if not scriptpath:match("^/") then
-        scriptpath = lfs.currentdir() .. scriptpath:sub(2)
-    end
+local Main = {
+    new = function(scriptpath)
+        local self = setmetatable({
+            scriptpath = scriptpath,
+            searchpaths = {},
+            params = nil
+        }, Main)
 
-    for _ = 1, 5 do
-        local target = lfs.symlinkattributes(scriptpath, "target")
-        if not target then
-            break
+        if not self.scriptpath:match("^/") then
+            self.scriptpath = lfs.currentdir() .. self.scriptpath:sub(2)
         end
 
-        if not target:match("^/") then
-            local linkdir = scriptpath:match("(.*/)") or "./"
-            scriptpath = linkdir .. target
-        else
-            scriptpath = target
+        for _ = 1, 5 do
+            local target = lfs.symlinkattributes(self.scriptpath, "target")
+            if not target then
+                break
+            end
+
+            if not target:match("^/") then
+                local linkdir = self.scriptpath:match("(.*/)") or "./"
+                self.scriptpath = linkdir .. target
+            else
+                self.scriptpath = target
+            end
         end
-    end
 
-    local scriptdir = scriptpath:match("(.*)/") or "."
-    local searchpaths = {}
-    for _, name in pairs({"fetchers", "utilities"}) do
-        for _, ext in pairs({"lua", "sh"}) do
-            table.insert(searchpaths, ("%s/uniplay/%s/?.%s"):format(os.getenv("XDG_CONFIG_HOME"), name, ext))
-            table.insert(searchpaths, ("%s/../share/uniplay/%s/?.%s"):format(scriptdir, name, ext))
-            table.insert(searchpaths, ("%s/%s/?.%s"):format(scriptdir, name, ext))
+        local scriptdir = scriptpath:match("(.*)/") or "."
+        for _, name in pairs({"fetchers", "utilities"}) do
+            for _, ext in pairs({"lua", "sh"}) do
+                table.insert(self.searchpaths, ("%s/uniplay/%s/?.%s"):format(os.getenv("XDG_CONFIG_HOME"), name, ext))
+                table.insert(self.searchpaths, ("%s/../share/uniplay/%s/?.%s"):format(scriptdir, name, ext))
+                table.insert(self.searchpaths, ("%s/%s/?.%s"):format(scriptdir, name, ext))
+            end
         end
-    end
 
-    return searchpaths
-end
+        return self
+    end,
 
-local parser = argparse("s-uniplay", "Universal player")
-parser:argument("fetcher", "fetcher to use"):default("auto")
-parser:argument("url", "url to fetch"):args("?")
-parser:flag("-v --version", "print version")
+    exec = function(self, fetcherpath)
+        local stdin = uv.new_pipe()
+        local stdout = uv.new_pipe()
+        local handle, pid = uv.spawn(fetcherpath, {
+            stdio = { stdin, stdout, 2 }
+        }, function(code, signal)
+            assert(code == 0, ("Failed to spawn %s, exit code %d"):format(fetcherpath, code))
+            stdin:close()
+            stdout:close()
+        end)
 
-local args = parser:parse()
+        stdin:write(self.params, function(err)
+            assert(not err, err)
+            stdin:shutdown()
+        end)
+
+        local result = {}
+        stdout:read_start(function(err, data)
+            assert(not err, err)
+            if data then
+                table.insert(result, data)
+            else
+                stdout:shutdown()
+            end
+        end)
+
+        uv.run()
+        print("Receive ", table.concat(result))
+    end,
+
+
+    getargs = function(self)
+        local parser = argparse("s-uniplay", "Universal player")
+        parser:argument("fetcher", "fetcher to use"):default("auto")
+        parser:argument("url", "url to fetch"):args("?")
+        parser:flag("-v --version", "print version")
+
+        return parser:parse()
+    end,
+
+    getfetcher = function(self, fetcher)
+        local packagepath = table.concat(self.searchpaths, ";")
+        local hfetcher = md5.sumhexa(fetcher)
+        local fetcherpath = package.searchpath(fetcher, packagepath) or package.searchpath(hfetcher, packagepath)
+        return fetcherpath
+    end,
+}
+
+local m = Main.new(arg[0])
+local args = m:getargs()
+
 if args.version then
     print("Uniplay: version 1.0")
-    return
+    return false
 end
 
-package.path = package.path .. ";" .. table.concat(get_package_path(arg[0]), ";")
+local params = nil
+if args.url then
+    params = ('{"url": "%s"}'):format(args.url)
+else
+    params = io.read("*a")
+end
 
-print("path:", package.path)
-
-local hfetcher = md5.sumhexa(args.fetcher)
-local fetcherpath = package.searchpath(args.fetcher, package.path)
-print("Found fetcher", fetcherpath)
+local ext = (fetcherpath or ""):match(".*/.*%.(.*)")
+if ext == "sh" then
+    m:exec(fetcherpath)
+end
 return
 --[[if not fetcherpath then
     print("Try to execute fetcher", args.fetcher, hfetcher)
